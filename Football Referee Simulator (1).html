@@ -1,0 +1,2153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Football Referee Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pitch-dark:#0a2b20;
+  --pitch:#0f4a34;
+  --pitch-stripe:#12583d;
+  --charcoal:#12181a;
+  --charcoal-2:#1a2224;
+  --panel:#182220;
+  --gold:#d4af37;
+  --gold-dim:#8a7326;
+  --yellow:#f5c518;
+  --red:#d7263d;
+  --green-ok:#3ea86e;
+  --cream:#f3efe3;
+  --cream-dim:#c9c3ae;
+  --ink:#0a0a0a;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  font-family:'Barlow',sans-serif;
+  background:
+    repeating-linear-gradient(90deg, var(--pitch) 0 80px, var(--pitch-stripe) 80px 160px),
+    var(--pitch-dark);
+  color:var(--cream);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+#app{
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:24px 16px 60px;
+}
+h1,h2,h3{font-family:'Anton',sans-serif; letter-spacing:0.5px; margin:0; text-transform:uppercase;}
+.eyebrow{
+  font-family:'Barlow Condensed',sans-serif;
+  text-transform:uppercase;
+  letter-spacing:3px;
+  font-size:12px;
+  color:var(--gold);
+  font-weight:600;
+}
+.mono{font-family:'Space Mono',monospace;}
+.shell{
+  width:100%;
+  max-width:920px;
+  background:linear-gradient(180deg, rgba(18,24,26,0.96), rgba(10,14,15,0.98));
+  border:1px solid rgba(212,175,55,0.25);
+  border-radius:18px;
+  box-shadow:0 30px 80px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.03);
+  padding:28px 28px 32px;
+  position:relative;
+  overflow:hidden;
+}
+.shell::before{
+  content:"";
+  position:absolute; top:-2px; left:0; right:0; height:4px;
+  background:linear-gradient(90deg, var(--gold), var(--yellow), var(--gold));
+}
+.topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:22px; flex-wrap:wrap; gap:10px;
+}
+.brand{display:flex; align-items:center; gap:12px;}
+.brand .whistle{
+  width:38px;height:38px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, #333 0%, #0c0c0c 70%);
+  border:2px solid var(--gold);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;
+}
+.brand h1{font-size:26px; color:var(--cream); line-height:1;}
+.brand span{font-size:11px;color:var(--gold-dim);font-family:'Barlow Condensed';letter-spacing:2px;}
+.hud{
+  display:flex; gap:14px; flex-wrap:wrap;
+}
+.hud-chip{
+  background:var(--charcoal-2);
+  border:1px solid rgba(212,175,55,0.2);
+  border-radius:10px;
+  padding:6px 12px;
+  font-family:'Barlow Condensed';
+  font-size:13px;
+  display:flex; gap:6px; align-items:center;
+  color:var(--cream-dim);
+}
+.hud-chip b{color:var(--gold); font-family:'Space Mono'; font-size:13px;}
+
+.btn{
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:600; letter-spacing:1px; text-transform:uppercase;
+  border:none; border-radius:10px; padding:13px 18px;
+  cursor:pointer; font-size:15px;
+  transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  color:var(--ink);
+  background:linear-gradient(180deg, var(--gold), var(--gold-dim));
+  box-shadow:0 6px 0 rgba(0,0,0,0.35);
+}
+.btn:hover{filter:brightness(1.08); transform:translateY(-1px);}
+.btn:active{transform:translateY(2px); box-shadow:0 3px 0 rgba(0,0,0,0.35);}
+.btn.secondary{background:var(--charcoal-2); color:var(--cream); border:1px solid rgba(243,239,227,0.25); box-shadow:0 6px 0 rgba(0,0,0,0.25);}
+.btn.danger{background:linear-gradient(180deg, var(--red), #8f1626); color:var(--cream);}
+.btn.yellowcard{background:linear-gradient(180deg, var(--yellow), #b8940a); color:var(--ink);}
+.btn.ghost{background:transparent;color:var(--cream-dim);border:1px dashed rgba(243,239,227,0.25); box-shadow:none;}
+.btn:disabled{opacity:0.4; cursor:not-allowed; transform:none; box-shadow:none;}
+.btn-row{display:flex; gap:10px; flex-wrap:wrap;}
+.full{width:100%;}
+
+.menu-grid{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; margin-top:6px;
+}
+.menu-card{
+  background:linear-gradient(160deg, var(--panel), var(--charcoal));
+  border:1px solid rgba(212,175,55,0.18);
+  border-radius:14px; padding:18px; cursor:pointer;
+  transition:transform .15s ease, border-color .15s ease;
+  position:relative; overflow:hidden;
+}
+.menu-card:hover{transform:translateY(-3px); border-color:var(--gold);}
+.menu-card .icon{font-size:28px; margin-bottom:8px; display:block;}
+.menu-card h3{font-size:19px; color:var(--cream); margin-bottom:4px;}
+.menu-card p{font-size:13px; color:var(--cream-dim); margin:0; line-height:1.4;}
+.menu-card .tag{
+  position:absolute; top:12px; right:12px; font-family:'Barlow Condensed';
+  font-size:10px; letter-spacing:1.5px; text-transform:uppercase;
+  background:rgba(212,175,55,0.15); color:var(--gold); padding:3px 8px; border-radius:20px;
+}
+
+.form-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+@media (max-width:640px){.form-grid{grid-template-columns:1fr;}}
+label{display:block; font-family:'Barlow Condensed'; font-size:12px; letter-spacing:1.5px; text-transform:uppercase; color:var(--gold-dim); margin-bottom:5px;}
+input[type=text], input[type=number], select{
+  width:100%; padding:10px 12px; border-radius:8px; border:1px solid rgba(243,239,227,0.18);
+  background:var(--charcoal-2); color:var(--cream); font-family:'Barlow'; font-size:14px;
+}
+input[type=range]{width:100%;}
+.field{margin-bottom:14px;}
+.swatches{display:flex; gap:8px; flex-wrap:wrap;}
+.swatch{
+  width:32px;height:32px;border-radius:50%; cursor:pointer; border:2px solid transparent;
+}
+.swatch.active{border-color:var(--gold); transform:scale(1.12);}
+.choice-row{display:flex; gap:8px; flex-wrap:wrap;}
+.choice-pill{
+  padding:8px 14px; border-radius:20px; border:1px solid rgba(243,239,227,0.2);
+  background:var(--charcoal-2); cursor:pointer; font-family:'Barlow Condensed'; font-size:13px;
+  letter-spacing:1px; text-transform:uppercase; color:var(--cream-dim);
+}
+.choice-pill.active{background:var(--gold); color:var(--ink); border-color:var(--gold); font-weight:700;}
+
+.avatar-preview{
+  width:120px;height:120px;border-radius:50%; margin:0 auto 14px;
+  display:flex;align-items:center;justify-content:center; font-size:52px;
+  border:3px solid var(--gold); position:relative;
+}
+.avatar-wrap{text-align:center;}
+
+.pitch-box{
+  position:relative; width:100%; height:200px; border-radius:14px; overflow:hidden;
+  background:repeating-linear-gradient(90deg, #14603f 0 40px, #176a46 40px 80px);
+  border:2px solid rgba(212,175,55,0.35);
+  margin-bottom:16px;
+}
+.pitch-box .center-line{position:absolute; left:50%; top:0; bottom:0; width:2px; background:rgba(255,255,255,0.35);}
+.pitch-box .center-circle{position:absolute; left:50%; top:50%; width:70px; height:70px; margin:-35px 0 0 -35px; border:2px solid rgba(255,255,255,0.35); border-radius:50%;}
+.pitch-box .box-left, .pitch-box .box-right{position:absolute; top:35%; bottom:35%; width:60px; border:2px solid rgba(255,255,255,0.35);}
+.pitch-box .box-left{left:0; border-left:none;}
+.pitch-box .box-right{right:0; border-right:none;}
+.ball{
+  position:absolute; width:16px; height:16px; border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, #fff, #ccc 60%, #999);
+  box-shadow:0 2px 6px rgba(0,0,0,0.5);
+  transition:left 1.1s ease, top 1.1s ease;
+}
+
+.scoreboard{
+  display:flex; justify-content:space-between; align-items:center;
+  background:var(--charcoal-2); border-radius:10px; padding:10px 16px; margin-bottom:14px;
+  border:1px solid rgba(212,175,55,0.2);
+}
+.scoreboard .teams{font-family:'Barlow Condensed'; font-size:17px; font-weight:600; letter-spacing:0.5px;}
+.scoreboard .clock{font-family:'Space Mono'; font-size:22px; color:var(--gold);}
+.scoreboard-cards{display:flex; justify-content:space-between; font-family:'Barlow Condensed'; font-size:12px; color:var(--cream-dim); margin:-6px 0 14px; padding:0 4px;}
+.scoreboard-cards span b{color:var(--cream);}
+.zone-marker{
+  position:absolute; width:22px; height:22px; margin:-11px 0 0 -11px; border-radius:50%;
+  background:rgba(212,175,55,0.35); border:2px solid var(--gold);
+  animation:zonepulse 1.4s ease-in-out infinite;
+}
+@keyframes zonepulse{0%{transform:scale(0.8); opacity:0.9;}70%{transform:scale(1.9); opacity:0;}100%{transform:scale(0.8); opacity:0;}}
+.zone-tag{
+  position:absolute; bottom:8px; left:8px; background:rgba(0,0,0,0.55); color:var(--gold);
+  font-family:'Barlow Condensed'; font-size:11px; letter-spacing:1px; text-transform:uppercase;
+  padding:4px 9px; border-radius:6px; border:1px solid rgba(212,175,55,0.35);
+}
+.event-head{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px;}
+.type-badge{
+  display:inline-flex; align-items:center; gap:6px; font-family:'Barlow Condensed'; font-weight:700;
+  font-size:12.5px; letter-spacing:1px; text-transform:uppercase; padding:5px 11px; border-radius:20px;
+  background:rgba(255,255,255,0.06); border:1px solid currentColor;
+}
+.team-tag{
+  display:inline-flex; align-items:center; gap:6px; font-family:'Barlow Condensed'; font-size:12.5px;
+  letter-spacing:0.5px; padding:5px 10px; border-radius:20px; background:var(--charcoal-2); color:var(--cream);
+  border:1px solid rgba(243,239,227,0.15);
+}
+.team-tag .dot{width:10px; height:10px; border-radius:50%; display:inline-block;}
+.jersey-badge{
+  font-family:'Space Mono'; font-size:12px; background:var(--charcoal-2); color:var(--gold);
+  border:1px solid rgba(212,175,55,0.3); border-radius:6px; padding:3px 7px;
+}
+.minute-tag{font-family:'Space Mono'; font-size:12px; color:var(--cream-dim);}
+
+.event-card{
+  background:var(--panel); border:1px solid rgba(212,175,55,0.25); border-radius:14px;
+  padding:18px; margin-bottom:14px;
+}
+.event-card .loc{font-family:'Barlow Condensed'; font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--gold);}
+.event-card .desc{font-size:16px; line-height:1.5; margin:8px 0 14px;}
+.timer-ring-wrap{display:flex; align-items:center; gap:14px; margin-bottom:10px;}
+.timer-ring{width:46px;height:46px;}
+.timer-ring circle{fill:none; stroke-width:5;}
+.timer-ring .bg{stroke:rgba(243,239,227,0.15);}
+.timer-ring .fg{stroke:var(--gold); stroke-linecap:round; transform:rotate(-90deg); transform-origin:50% 50%; transition:stroke-dashoffset .2s linear, stroke .2s;}
+.decision-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px;}
+
+.card-fly{
+  position:fixed; top:40%; left:50%; transform:translate(-50%,-50%) scale(0) rotate(-8deg);
+  width:80px; height:112px; border-radius:8px; z-index:999;
+  box-shadow:0 20px 50px rgba(0,0,0,0.6);
+  display:flex;align-items:center;justify-content:center; font-family:'Anton'; font-size:14px; color:#111;
+  animation:cardslam .9s cubic-bezier(.2,1.4,.4,1) forwards;
+}
+@keyframes cardslam{
+  0%{transform:translate(-50%,-50%) scale(0) rotate(-15deg); opacity:0;}
+  55%{transform:translate(-50%,-50%) scale(1.15) rotate(-4deg); opacity:1;}
+  75%{transform:translate(-50%,-50%) scale(1) rotate(-4deg); opacity:1;}
+  100%{transform:translate(-50%,-160%) scale(0.85) rotate(-4deg); opacity:0;}
+}
+
+.var-overlay{
+  position:fixed; inset:0; background:rgba(3,6,5,0.88); z-index:900;
+  display:flex; align-items:center; justify-content:center; padding:20px;
+}
+.var-box{
+  background:var(--charcoal); border:2px solid var(--gold); border-radius:16px; padding:26px;
+  max-width:480px; width:100%; text-align:center;
+}
+.var-lines{font-family:'Anton'; letter-spacing:2px; color:var(--gold); font-size:20px; margin-bottom:10px;
+  animation:blinkvar 1s infinite;}
+@keyframes blinkvar{0%,100%{opacity:1;}50%{opacity:0.4;}}
+.replay-box{background:var(--charcoal-2); border-radius:10px; padding:16px; margin:16px 0; font-size:14px; color:var(--cream-dim); text-align:left;}
+
+.rating-bar-row{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+.rating-bar-row .label{width:180px; font-family:'Barlow Condensed'; font-size:13px; letter-spacing:1px; text-transform:uppercase; color:var(--cream-dim);}
+.rating-bar-track{flex:1; height:10px; border-radius:6px; background:rgba(243,239,227,0.1); overflow:hidden;}
+.rating-bar-fill{height:100%; border-radius:6px; background:linear-gradient(90deg, var(--gold), var(--yellow));}
+.rating-bar-row .val{width:36px; text-align:right; font-family:'Space Mono'; color:var(--gold); font-size:13px;}
+
+.toast{
+  position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+  background:var(--charcoal); border:1px solid var(--gold); color:var(--cream);
+  padding:10px 18px; border-radius:10px; font-family:'Barlow Condensed'; letter-spacing:1px;
+  z-index:1000; opacity:0; transition:opacity .3s, transform .3s;
+  font-size:14px;
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(-4px);}
+
+.stat-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-top:10px;}
+.stat-tile{background:var(--panel); border:1px solid rgba(212,175,55,0.2); border-radius:12px; padding:14px; text-align:center;}
+.stat-tile .n{font-family:'Anton'; font-size:26px; color:var(--gold);}
+.stat-tile .l{font-family:'Barlow Condensed'; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--cream-dim);}
+
+.shop-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px;}
+.shop-item{background:var(--panel); border:1px solid rgba(212,175,55,0.2); border-radius:12px; padding:14px; text-align:center;}
+.shop-item .ic{font-size:30px; margin-bottom:6px;}
+.shop-item .price{font-family:'Space Mono'; color:var(--gold); margin:6px 0;}
+
+.division-track{display:flex; flex-wrap:wrap; gap:6px; margin:14px 0;}
+.division-pip{
+  padding:6px 10px; border-radius:20px; font-family:'Barlow Condensed'; font-size:12px; letter-spacing:1px;
+  text-transform:uppercase; background:var(--charcoal-2); color:var(--cream-dim); border:1px solid rgba(243,239,227,0.15);
+}
+.division-pip.current{background:var(--gold); color:var(--ink); font-weight:700;}
+.division-pip.done{color:var(--green-ok); border-color:var(--green-ok);}
+
+.section-title{margin:22px 0 10px; display:flex; align-items:center; gap:10px;}
+.section-title .line{flex:1; height:1px; background:rgba(212,175,55,0.25);}
+
+.notice{background:rgba(212,175,55,0.1); border:1px solid rgba(212,175,55,0.35); border-radius:10px; padding:10px 14px; font-size:13px; color:var(--cream-dim); margin-bottom:14px;}
+small.hint{color:var(--cream-dim); font-size:12px;}
+textarea{width:100%; min-height:60px; background:var(--charcoal-2); color:var(--cream); border:1px solid rgba(243,239,227,0.18); border-radius:8px; padding:10px; font-family:'Barlow'; margin-bottom:14px;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* =========================================================================
+   FOOTBALL REFEREE SIMULATOR
+   Prototipo completo em HTML/CSS/JS puro (single file)
+   ========================================================================= */
+
+/* ---------- Dados estaticos ---------- */
+const DIVISIONS = [
+  {key:'amador', name:'Amador', var:false, salary:150, promoAvg:6.4, minGames:2, crowd:1},
+  {key:'estadual', name:'Estadual', var:false, salary:320, promoAvg:6.6, minGames:3, crowd:2},
+  {key:'serieD', name:'Série D', var:false, salary:550, promoAvg:6.8, minGames:3, crowd:2},
+  {key:'serieC', name:'Série C', var:true, salary:950, promoAvg:7.0, minGames:3, crowd:3},
+  {key:'serieB', name:'Série B', var:true, salary:1600, promoAvg:7.2, minGames:4, crowd:4},
+  {key:'serieA', name:'Série A', var:true, salary:2600, promoAvg:7.4, minGames:4, crowd:5},
+  {key:'copaNacional', name:'Copa Nacional', var:true, salary:3800, promoAvg:7.6, minGames:3, crowd:5},
+  {key:'libertadores', name:'Libertadores', var:true, salary:5200, promoAvg:7.8, minGames:4, crowd:6},
+  {key:'champions', name:'Champions League', var:true, salary:7500, promoAvg:8.0, minGames:4, crowd:6},
+  {key:'worldcup', name:'Copa do Mundo', var:true, salary:11000, promoAvg:null, minGames:0, crowd:7},
+];
+
+const CLUBS = ["Atlético Vale Verde","Porto Estrela FC","União Serra Azul","Real Cascavel","Náutico do Norte",
+"Ferroviário Sul","Estrela do Rio","Grêmio Aurora","Vasco da Colina","Independente Litoral","Cruzeiro do Vale",
+"Palmeira Dourada","Botafogo das Águas","Flamengo Rubro","Coritiba Serrano","Guarani Alvinegro","Sport Recife Novo",
+"Bahia Praiano","Ceará Vermelho","América Mineiro"];
+
+const PLAYER_NAMES = ["Rafa","Bino","Deco","Zeca","Tico","Vini","Léo","Cauê","Jotinha","Marlon","Yuri","Pipa",
+"Digão","Nino","Tuca","Bruno","Kaká Jr.","Xandão","Rony","Gui"];
+
+const COACH_NAMES = ["técnico Amauri","técnico Belchior","técnico Cazuza","técnico Duda","técnico Evandro"];
+
+const PERSONALITIES = [
+  {key:'rigoroso', label:'Mais rígido', desc:'Aplica a lei com mão de ferro. Cartões saem mais rápido.'},
+  {key:'equilibrado', label:'Equilibrado', desc:'Deixa o jogo fluir, mas não abre mão da ordem.'},
+  {key:'tolerante', label:'Mais tolerante', desc:'Prefere conversar antes de punir. Jogo mais solto.'},
+];
+
+const SKIN_TONES = ['#ffdbac','#f1c27d','#e0ac69','#c68642','#8d5524','#5a3825'];
+const KIT_COLORS = ['#f5c518','#3ea86e','#3a6fd8','#d7263d','#181818','#e8e8e8'];
+const EYE_COLORS = ['#3b2417','#2e5d3c','#3b6ea5','#555'];
+const FACES = ['🙂','😐','🧔','👨‍🦱','👨‍🦳','👩','👩‍🦱','🧑'];
+
+const SHOP_ITEMS = [
+  {id:'kit_classic', cat:'Uniforme', name:'Kit Clássico Preto', price:0, icon:'🖤'},
+  {id:'kit_gold', cat:'Uniforme', name:'Kit Dourado Elite', price:1200, icon:'🟡'},
+  {id:'kit_neon', cat:'Uniforme', name:'Kit Neon Internacional', price:2200, icon:'💚'},
+  {id:'whistle_classic', cat:'Apito', name:'Apito Clássico', price:0, icon:'🎼'},
+  {id:'whistle_pro', cat:'Apito', name:'Apito Pro Titanium', price:800, icon:'🔔'},
+  {id:'watch_basic', cat:'Relógio', name:'Relógio Básico', price:0, icon:'⌚'},
+  {id:'watch_smart', cat:'Relógio', name:'Relógio Smart FIFA', price:1500, icon:'⏱️'},
+  {id:'card_wallet_basic', cat:'Cartões', name:'Porta-cartões Padrão', price:0, icon:'🗂️'},
+  {id:'card_wallet_gold', cat:'Cartões', name:'Porta-cartões Dourado', price:900, icon:'✨'},
+  {id:'flag_basic', cat:'Acessório', name:'Bandeirinha Padrão', price:0, icon:'🚩'},
+  {id:'earpiece_pro', cat:'Acessório', name:'Fone Comunicação Pro', price:1700, icon:'🎧'},
+];
+
+/* ---------- Estado global ---------- */
+var state = {
+  screen:'menu',
+  refExists:false,
+  referee:null,
+  career:null,
+  customLeagues:[],
+  matchCtx:null,
+  editingLeague:null,
+  toastTimeout:null,
+};
+
+const STORAGE_KEY_CAREER = 'careerSave';
+const STORAGE_KEY_LEAGUES = 'customLeagues';
+
+function defaultReferee(){
+  return {
+    firstName:'Marcos', lastName:'Andrade', nationality:'Brasil', age:32, height:180, weight:78,
+    skin:SKIN_TONES[1], face:FACES[0], hair:'Curto', beard:'Sem barba', eye:EYE_COLORS[0],
+    kit:KIT_COLORS[4], personality:'equilibrado', voice:'Firme', whistleStyle:'Curto e seco', runStyle:'Ágil',
+  };
+}
+
+function defaultCareer(referee){
+  return {
+    referee,
+    divisionIndex:0,
+    money:200,
+    gamesPlayed:0,
+    ratingHistory:[],
+    divisionRatings:[],
+    stats:{yellow:0, red:0, penalties:0, goalsAnnulled:0, varReviews:0, seriousErrors:0, promotions:0, matches:0},
+    inventory:['kit_classic','whistle_classic','watch_basic','card_wallet_basic','flag_basic'],
+    equipped:{kit:'kit_classic', whistle:'whistle_classic', watch:'watch_basic', cards:'card_wallet_basic'},
+  };
+}
+
+/* ---------- Persistencia (funciona dentro do Claude e também como arquivo HTML comum) ---------- */
+function hasArtifactStorage(){
+  return typeof window.storage !== 'undefined' && window.storage && typeof window.storage.get === 'function';
+}
+async function storageRead(key){
+  if(hasArtifactStorage()){
+    try{ const r = await window.storage.get(key, false); return (r && r.value!=null) ? r.value : null; }
+    catch(e){ return null; }
+  }
+  try{ return window.localStorage.getItem(key); }catch(e){ return null; }
+}
+async function storageWrite(key, value){
+  if(hasArtifactStorage()){
+    try{ await window.storage.set(key, value, false); return true; }
+    catch(e){ console.error('Falha ao salvar (artifact storage):', e); return false; }
+  }
+  try{ window.localStorage.setItem(key, value); return true; }
+  catch(e){ console.error('Falha ao salvar (localStorage):', e); return false; }
+}
+
+async function loadCareer(){
+  try{
+    const val = await storageRead(STORAGE_KEY_CAREER);
+    if(val){
+      state.career = JSON.parse(val);
+      state.referee = state.career.referee;
+      state.refExists = true;
+    }
+  }catch(e){ /* nada salvo ainda */ }
+  try{
+    const val2 = await storageRead(STORAGE_KEY_LEAGUES);
+    if(val2){ state.customLeagues = JSON.parse(val2); }
+  }catch(e){ /* nada salvo ainda */ }
+}
+async function saveCareer(){
+  if(!state.career) return;
+  const ok = await storageWrite(STORAGE_KEY_CAREER, JSON.stringify(state.career));
+  if(!ok) showToast('⚠️ Não foi possível salvar seu progresso neste navegador.');
+}
+async function saveLeagues(){
+  const ok = await storageWrite(STORAGE_KEY_LEAGUES, JSON.stringify(state.customLeagues));
+  if(!ok) showToast('⚠️ Não foi possível salvar suas ligas neste navegador.');
+}
+
+/* ---------- Helpers ---------- */
+function el(html){ const d=document.createElement('div'); d.innerHTML=html.trim(); return d.firstChild; }
+function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function randInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function fmtMoney(v){ return 'R$ ' + v.toLocaleString('pt-BR'); }
+function showToast(msg){
+  let t = document.getElementById('toast');
+  if(!t){ t = el('<div id="toast" class="toast"></div>'); document.body.appendChild(t); }
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(state.toastTimeout);
+  state.toastTimeout = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML='';
+  app.appendChild(topShell());
+}
+
+function topShell(){
+  const wrap = el(`<div class="shell"></div>`);
+  wrap.appendChild(renderTopbar());
+  wrap.appendChild(renderScreen());
+  return wrap;
+}
+
+function renderTopbar(){
+  const bar = el(`
+    <div class="topbar">
+      <div class="brand">
+        <div class="whistle">🟨</div>
+        <div>
+          <h1>Football Referee Simulator</h1>
+          <span>APITE. DECIDA. EVOLUA.</span>
+        </div>
+      </div>
+      <div class="hud"></div>
+    </div>
+  `);
+  const hud = bar.querySelector('.hud');
+  if(state.career){
+    const div = DIVISIONS[state.career.divisionIndex];
+    hud.appendChild(el(`<div class="hud-chip">🏆 <b>${div.name}</b></div>`));
+    hud.appendChild(el(`<div class="hud-chip">💰 <b>${fmtMoney(state.career.money)}</b></div>`));
+    hud.appendChild(el(`<div class="hud-chip">📋 <b>${state.career.gamesPlayed}</b> jogos</div>`));
+  }
+  if(state.screen!=='menu'){
+    const back = el(`<button class="btn secondary" style="padding:8px 14px;">⬅ Menu</button>`);
+    back.onclick = ()=>{
+      if(state.matchCtx && state.matchCtx.active){
+        if(!confirm('Sair da partida em andamento? Seu progresso nesta partida será perdido.')) return;
+        state.matchCtx.active = false;
+        clearMatchTimers();
+        document.querySelectorAll('.var-overlay, .card-fly').forEach(elm=>elm.remove());
+      }
+      state.screen='menu'; render();
+    };
+    hud.appendChild(back);
+  }
+  return bar;
+}
+
+function renderScreen(){
+  switch(state.screen){
+    case 'menu': return screenMenu();
+    case 'refCreator': return screenRefCreator();
+    case 'leagueCreator': return screenLeagueCreator();
+    case 'leagueList': return screenLeagueList();
+    case 'careerHub': return screenCareerHub();
+    case 'match': return screenMatch();
+    case 'matchResult': return screenMatchResult();
+    case 'shop': return screenShop();
+    case 'stats': return screenStats();
+    case 'challenges': return screenChallenges();
+    case 'backup': return screenBackup();
+    default: return el('<div>Tela não encontrada</div>');
+  }
+}
+
+/* ================= MENU PRINCIPAL ================= */
+function screenMenu(){
+  const box = el('<div></div>');
+  if(!state.refExists){
+    box.appendChild(el(`<div class="notice">Crie seu árbitro para começar sua carreira. Sem um árbitro criado, você ainda pode explorar o Criador de Liga.</div>`));
+  }
+  const grid = el('<div class="menu-grid"></div>');
+
+  const cards = [
+    {icon:'👤', title:'Criador de Árbitro', desc:state.refExists? 'Editar seu árbitro atual.' : 'Crie seu árbitro do zero.', tag:state.refExists?'Editar':'Novo', action:()=>{state.screen='refCreator'; render();}},
+    {icon:'🏟️', title:'Carreira', desc: state.refExists? 'Continue subindo de divisão.' : 'Crie um árbitro primeiro.', tag:'Principal', disabled:!state.refExists, action:()=>{ state.screen='careerHub'; render(); }},
+    {icon:'⚡', title:'Partida Rápida', desc:'Um jogo avulso de até 3 minutos, sem afetar sua carreira.', tag:'2-3 min', disabled:!state.refExists, action:()=>startQuickMatch()},
+    {icon:'🎓', title:'Modo Treinamento', desc:'Decisões explicadas pela IFAB, sem pressão de tempo.', tag:'Didático', disabled:!state.refExists, action:()=>startTraining()},
+    {icon:'🧩', title:'Desafios', desc:'Sequências de lances difíceis para testar sua régua.', tag:'Novo', disabled:!state.refExists, action:()=>{state.screen='challenges'; render();}},
+    {icon:'🏆', title:'Criador de Liga', desc:'Monte sua própria competição personalizada.', tag:'Custom', action:()=>{state.editingLeague=null; state.screen='leagueCreator'; render();}},
+    {icon:'📜', title:'Minhas Ligas', desc:'Jogue rodadas das ligas que você criou.', tag:`${state.customLeagues.length}`, action:()=>{state.screen='leagueList'; render();}},
+    {icon:'🛍️', title:'Loja', desc:'Uniformes, apitos, relógios e cartões — 100% cosmético.', tag:'Loja', disabled:!state.refExists, action:()=>{state.screen='shop'; render();}},
+    {icon:'📊', title:'Estatísticas', desc:'Seu histórico completo como árbitro.', tag:'Perfil', disabled:!state.refExists, action:()=>{state.screen='stats'; render();}},
+    {icon:'💾', title:'Backup do Progresso', desc:'Gere um código para levar seu progresso a outro navegador ou dispositivo.', tag:'Sync manual', action:()=>{state.screen='backup'; render();}},
+  ];
+  cards.forEach(c=>{
+    const card = el(`
+      <div class="menu-card" style="${c.disabled?'opacity:.45; cursor:not-allowed;':''}">
+        <span class="tag">${c.tag}</span>
+        <span class="icon">${c.icon}</span>
+        <h3>${c.title}</h3>
+        <p>${c.desc}</p>
+      </div>
+    `);
+    if(!c.disabled) card.onclick = c.action;
+    grid.appendChild(card);
+  });
+  box.appendChild(grid);
+  return box;
+}
+
+/* ================= CRIADOR DE ÁRBITRO ================= */
+function screenRefCreator(){
+  const r = state.referee ? {...state.referee} : defaultReferee();
+  const box = el('<div></div>');
+  box.appendChild(el(`<div class="section-title"><h2>Criador de Árbitro</h2><div class="line"></div></div>`));
+
+  const previewWrap = el(`
+    <div class="avatar-wrap">
+      <div class="avatar-preview" id="avPrev" style="background:${r.skin}; border-color:${r.kit};">${r.face}</div>
+      <small class="hint">Pré-visualização estilizada (emoji + cores)</small>
+    </div>
+  `);
+  box.appendChild(previewWrap);
+
+  const form = el('<div class="form-grid"></div>');
+  function field(labelText, inputHtml){
+    const f = el(`<div class="field"><label>${labelText}</label></div>`);
+    f.appendChild(inputHtml);
+    return f;
+  }
+
+  const firstName = el(`<input type="text" value="${r.firstName}">`);
+  const lastName = el(`<input type="text" value="${r.lastName}">`);
+  const nationality = el(`<input type="text" value="${r.nationality}">`);
+  const age = el(`<input type="number" min="22" max="60" value="${r.age}">`);
+  const height = el(`<input type="number" min="160" max="205" value="${r.height}">`);
+  const weight = el(`<input type="number" min="55" max="110" value="${r.weight}">`);
+
+  form.appendChild(field('Nome', firstName));
+  form.appendChild(field('Sobrenome', lastName));
+  form.appendChild(field('Nacionalidade', nationality));
+  form.appendChild(field('Idade', age));
+  form.appendChild(field('Altura (cm)', height));
+  form.appendChild(field('Peso (kg)', weight));
+  box.appendChild(form);
+
+  let picked = {skin:r.skin, kit:r.kit, eye:r.eye, face:r.face, hair:r.hair, beard:r.beard, voice:r.voice, whistleStyle:r.whistleStyle, runStyle:r.runStyle, personality:r.personality};
+
+  function swatchRow(labelText, options, current, applyKey){
+    const wrap = el(`<div class="field"><label>${labelText}</label><div class="swatches"></div></div>`);
+    const row = wrap.querySelector('.swatches');
+    options.forEach(color=>{
+      const s = el(`<div class="swatch" style="background:${color};"></div>`);
+      if(color===current) s.classList.add('active');
+      s.onclick = ()=>{
+        row.querySelectorAll('.swatch').forEach(x=>x.classList.remove('active'));
+        s.classList.add('active');
+        picked[applyKey]=color;
+        if(applyKey==='skin') previewWrap.querySelector('#avPrev').style.background = color;
+        if(applyKey==='kit') previewWrap.querySelector('#avPrev').style.borderColor = color;
+      };
+      row.appendChild(s);
+    });
+    return wrap;
+  }
+  box.appendChild(swatchRow('Tom de pele', SKIN_TONES, r.skin, 'skin'));
+  box.appendChild(swatchRow('Cor do uniforme favorito', KIT_COLORS, r.kit, 'kit'));
+  box.appendChild(swatchRow('Cor dos olhos', EYE_COLORS, r.eye, 'eye'));
+
+  const faceWrap = el(`<div class="field"><label>Rosto</label><div class="choice-row"></div></div>`);
+  FACES.forEach(f=>{
+    const pill = el(`<div class="choice-pill" style="font-size:18px;">${f}</div>`);
+    if(f===r.face) pill.classList.add('active');
+    pill.onclick = ()=>{ faceWrap.querySelectorAll('.choice-pill').forEach(p=>p.classList.remove('active')); pill.classList.add('active'); picked.face=f; previewWrap.querySelector('#avPrev').textContent=f; };
+    faceWrap.querySelector('.choice-row').appendChild(pill);
+  });
+  box.appendChild(faceWrap);
+
+  function pillRow(labelText, options, current, key){
+    const wrap = el(`<div class="field"><label>${labelText}</label><div class="choice-row"></div></div>`);
+    options.forEach(opt=>{
+      const pill = el(`<div class="choice-pill">${opt}</div>`);
+      if(opt===current) pill.classList.add('active');
+      pill.onclick=()=>{ wrap.querySelectorAll('.choice-pill').forEach(p=>p.classList.remove('active')); pill.classList.add('active'); picked[key]=opt; };
+      wrap.querySelector('.choice-row').appendChild(pill);
+    });
+    return wrap;
+  }
+
+  box.appendChild(pillRow('Cabelo', ['Curto','Longo','Careca','Cacheado','Rabo de cavalo'], r.hair, 'hair'));
+  box.appendChild(pillRow('Barba', ['Sem barba','Cavanhaque','Barba cheia','Bigode'], r.beard, 'beard'));
+  box.appendChild(pillRow('Voz', ['Firme','Grave','Aguda','Serena'], r.voice, 'voice'));
+  box.appendChild(pillRow('Estilo de apitar', ['Curto e seco','Longo e forte','Duplo apito','Discreto'], r.whistleStyle, 'whistleStyle'));
+  box.appendChild(pillRow('Estilo de corrida', ['Ágil','Ereto e firme','Econômico','Explosivo'], r.runStyle, 'runStyle'));
+
+  box.appendChild(el(`<div class="section-title"><h3>Personalidade</h3><div class="line"></div></div>`));
+  const persWrap = el('<div class="choice-row"></div>');
+  const persDesc = el(`<p class="hint" style="margin-top:8px;">${PERSONALITIES.find(p=>p.key===r.personality).desc}</p>`);
+  PERSONALITIES.forEach(p=>{
+    const pill = el(`<div class="choice-pill" style="padding:12px 16px;">${p.label}</div>`);
+    if(p.key===r.personality) pill.classList.add('active');
+    pill.onclick=()=>{ persWrap.querySelectorAll('.choice-pill').forEach(x=>x.classList.remove('active')); pill.classList.add('active'); picked.personality=p.key; persDesc.textContent = p.desc; };
+    persWrap.appendChild(pill);
+  });
+  box.appendChild(persWrap);
+  box.appendChild(persDesc);
+
+  const saveBtn = el(`<button class="btn full" style="margin-top:20px;">💾 Salvar Árbitro e Continuar</button>`);
+  saveBtn.onclick = async ()=>{
+    const newRef = {
+      firstName: firstName.value.trim() || 'Árbitro',
+      lastName: lastName.value.trim() || '',
+      nationality: nationality.value.trim() || 'Brasil',
+      age: clamp(parseInt(age.value)||30, 22, 60),
+      height: clamp(parseInt(height.value)||180, 160, 205),
+      weight: clamp(parseInt(weight.value)||78, 55, 110),
+      skin: picked.skin, face: picked.face, hair: picked.hair, beard: picked.beard, eye: picked.eye,
+      kit: picked.kit, personality: picked.personality, voice: picked.voice,
+      whistleStyle: picked.whistleStyle, runStyle: picked.runStyle,
+    };
+    state.referee = newRef;
+    if(!state.career){ state.career = defaultCareer(newRef); }
+    else { state.career.referee = newRef; }
+    state.refExists = true;
+    await saveCareer();
+    showToast('Árbitro salvo com sucesso!');
+    state.screen='careerHub';
+    render();
+  };
+  box.appendChild(saveBtn);
+  return box;
+}
+
+/* ================= CRIADOR DE LIGA ================= */
+function screenLeagueCreator(){
+  const editing = state.editingLeague;
+  const l = editing ? {...editing} : {
+    name:'Liga Nova Estrela', country:'Brasil', crest:'🛡️', colorA:'#3ea86e', colorB:'#f5c518',
+    clubs:12, rounds:11, type:'Pontos corridos', pointsSystem:'3-1-0 (vitória-empate-derrota)',
+    specialRules:'', refKit:'#181818', ball:'Bola Aurora Match', sponsors:'Banco Vale, Aurora Bebidas',
+    trophy:'Taça Nova Estrela', anthem:'Hino instrumental da Liga Nova Estrela',
+  };
+  const box = el('<div></div>');
+  box.appendChild(el(`<div class="section-title"><h2>${editing?'Editar Liga':'Criador de Liga'}</h2><div class="line"></div></div>`));
+
+  const form = el('<div class="form-grid"></div>');
+  function field(labelText, node){ const f=el(`<div class="field"><label>${labelText}</label></div>`); f.appendChild(node); return f; }
+
+  const name = el(`<input type="text" value="${l.name}">`);
+  const country = el(`<input type="text" value="${l.country}">`);
+  const clubs = el(`<input type="number" min="4" max="32" value="${l.clubs}">`);
+  const rounds = el(`<input type="number" min="1" max="38" value="${l.rounds}">`);
+  const ball = el(`<input type="text" value="${l.ball}">`);
+  const trophy = el(`<input type="text" value="${l.trophy}">`);
+  const sponsors = el(`<input type="text" value="${l.sponsors}">`);
+  const anthem = el(`<input type="text" value="${l.anthem}">`);
+
+  form.appendChild(field('Nome da liga', name));
+  form.appendChild(field('País', country));
+  form.appendChild(field('Quantidade de clubes', clubs));
+  form.appendChild(field('Quantidade de rodadas', rounds));
+  form.appendChild(field('Bola oficial', ball));
+  form.appendChild(field('Troféu', trophy));
+  form.appendChild(field('Patrocinadores', sponsors));
+  form.appendChild(field('Hino (descrição)', anthem));
+  box.appendChild(form);
+
+  const crestWrap = el(`<div class="field"><label>Escudo</label><div class="choice-row"></div></div>`);
+  let crest = l.crest;
+  ['🛡️','⚽','🦁','🐂','⭐','🔱','🦅','🐎'].forEach(ic=>{
+    const pill = el(`<div class="choice-pill" style="font-size:18px;">${ic}</div>`);
+    if(ic===l.crest) pill.classList.add('active');
+    pill.onclick=()=>{ crestWrap.querySelectorAll('.choice-pill').forEach(p=>p.classList.remove('active')); pill.classList.add('active'); crest=ic; };
+    crestWrap.querySelector('.choice-row').appendChild(pill);
+  });
+  box.appendChild(crestWrap);
+
+  box.appendChild(el(`<div class="field"><label>Cores oficiais</label></div>`));
+  const colorsRow = el('<div class="swatches"></div>');
+  let colorA=l.colorA, colorB=l.colorB;
+  [['A',['#3ea86e','#d7263d','#3a6fd8','#f5c518'],c=>colorA=c],['B',['#f5c518','#181818','#e8e8e8','#8a7326'],c=>colorB=c]].forEach(([tag,opts,setter])=>{
+    opts.forEach(c=>{
+      const s = el(`<div class="swatch" style="background:${c};" title="Cor ${tag}"></div>`);
+      s.onclick=()=>{ setter(c); };
+      colorsRow.appendChild(s);
+    });
+  });
+  box.appendChild(colorsRow);
+
+  const typeWrap = el(`<div class="field"><label>Tipo de competição</label><div class="choice-row"></div></div>`);
+  let compType = l.type;
+  ['Pontos corridos','Mata-mata','Grupos + mata-mata','Copa relâmpago'].forEach(t=>{
+    const pill = el(`<div class="choice-pill">${t}</div>`);
+    if(t===l.type) pill.classList.add('active');
+    pill.onclick=()=>{ typeWrap.querySelectorAll('.choice-pill').forEach(p=>p.classList.remove('active')); pill.classList.add('active'); compType=t; };
+    typeWrap.querySelector('.choice-row').appendChild(pill);
+  });
+  box.appendChild(typeWrap);
+
+  const ptsWrap = el(`<div class="field"><label>Sistema de pontos</label><div class="choice-row"></div></div>`);
+  let ptsSys = l.pointsSystem;
+  ['3-1-0 (vitória-empate-derrota)','2-1-0 (clássico)','Somente eliminação'].forEach(t=>{
+    const pill = el(`<div class="choice-pill">${t}</div>`);
+    if(t===l.pointsSystem) pill.classList.add('active');
+    pill.onclick=()=>{ ptsWrap.querySelectorAll('.choice-pill').forEach(p=>p.classList.remove('active')); pill.classList.add('active'); ptsSys=t; };
+    ptsWrap.querySelector('.choice-row').appendChild(pill);
+  });
+  box.appendChild(ptsWrap);
+
+  const kitWrap = el(`<div class="field"><label>Uniforme oficial dos árbitros</label><div class="swatches"></div></div>`);
+  let refKit = l.refKit;
+  KIT_COLORS.forEach(c=>{
+    const s = el(`<div class="swatch" style="background:${c};"></div>`);
+    if(c===l.refKit) s.classList.add('active');
+    s.onclick=()=>{ kitWrap.querySelectorAll('.swatch').forEach(x=>x.classList.remove('active')); s.classList.add('active'); refKit=c; };
+    kitWrap.querySelector('.swatches').appendChild(s);
+  });
+  box.appendChild(kitWrap);
+
+  box.appendChild(el(`<div class="field"><label>Regras especiais</label></div>`));
+  const special = el(`<textarea placeholder="Ex.: cada equipe pode pedir 1 revisão manual por jogo...">${l.specialRules}</textarea>`);
+  box.appendChild(special);
+
+  const btnRow = el('<div class="btn-row" style="margin-top:20px;"></div>');
+  const saveBtn = el(`<button class="btn">💾 Salvar Liga</button>`);
+  saveBtn.onclick = async ()=>{
+    const newLeague = {
+      id: editing? editing.id : 'league_'+Date.now(),
+      name:name.value.trim()||'Liga Sem Nome', country:country.value.trim()||'Brasil',
+      crest, colorA, colorB, clubs:clamp(parseInt(clubs.value)||12,4,32),
+      rounds:clamp(parseInt(rounds.value)||11,1,38), type:compType, pointsSystem:ptsSys,
+      specialRules: special.value.trim(), refKit, ball: ball.value.trim()||'Bola Oficial',
+      sponsors: sponsors.value.trim(), trophy: trophy.value.trim()||'Troféu da Liga',
+      anthem: anthem.value.trim(), progress:editing?editing.progress:0,
+    };
+    if(editing){
+      const idx = state.customLeagues.findIndex(x=>x.id===editing.id);
+      state.customLeagues[idx]=newLeague;
+    } else {
+      state.customLeagues.push(newLeague);
+    }
+    await saveLeagues();
+    showToast('Liga salva!');
+    state.editingLeague=null;
+    state.screen='leagueList';
+    render();
+  };
+  const cancelBtn = el(`<button class="btn secondary">Cancelar</button>`);
+  cancelBtn.onclick=()=>{ state.editingLeague=null; state.screen='leagueList'; render(); };
+  btnRow.appendChild(saveBtn); btnRow.appendChild(cancelBtn);
+  box.appendChild(btnRow);
+
+  box.appendChild(el(`<p class="hint" style="margin-top:14px;">💡 Importação de ligas da comunidade: cole um código de liga compartilhado (JSON) para importar.</p>`));
+  const importRow = el(`<div class="btn-row"><input type="text" id="importCode" placeholder="Cole o código JSON da liga aqui" style="flex:1;"><button class="btn secondary">Importar</button></div>`);
+  importRow.querySelector('button').onclick = async ()=>{
+    try{
+      const val = importRow.querySelector('#importCode').value;
+      const parsed = JSON.parse(val);
+      parsed.id = 'league_'+Date.now();
+      state.customLeagues.push(parsed);
+      await saveLeagues();
+      showToast('Liga importada com sucesso!');
+      state.screen='leagueList'; render();
+    }catch(e){ showToast('Código inválido — verifique o JSON.'); }
+  };
+  box.appendChild(importRow);
+  return box;
+}
+
+function screenLeagueList(){
+  const box = el('<div></div>');
+  box.appendChild(el(`<div class="section-title"><h2>Minhas Ligas</h2><div class="line"></div></div>`));
+  if(state.customLeagues.length===0){
+    box.appendChild(el(`<div class="notice">Nenhuma liga criada ainda. Use o Criador de Liga no menu.</div>`));
+    return box;
+  }
+  const grid = el('<div class="menu-grid"></div>');
+  state.customLeagues.forEach(l=>{
+    const card = el(`
+      <div class="menu-card">
+        <span class="tag">${l.progress||0}/${l.rounds} rodadas</span>
+        <span class="icon">${l.crest}</span>
+        <h3>${l.name}</h3>
+        <p>${l.country} · ${l.clubs} clubes · ${l.type}</p>
+      </div>
+    `);
+    const btns = el('<div class="btn-row" style="margin-top:10px;"></div>');
+    const play = el(`<button class="btn" style="flex:1;">▶ Jogar rodada</button>`);
+    play.onclick=(e)=>{ e.stopPropagation(); startLeagueMatch(l); };
+    const editB = el(`<button class="btn secondary">✏️</button>`);
+    editB.onclick=(e)=>{ e.stopPropagation(); state.editingLeague=l; state.screen='leagueCreator'; render(); };
+    const delB = el(`<button class="btn danger">🗑</button>`);
+    delB.onclick=async (e)=>{ e.stopPropagation(); if(confirm('Excluir esta liga?')){ state.customLeagues = state.customLeagues.filter(x=>x.id!==l.id); await saveLeagues(); render(); } };
+    btns.appendChild(play); btns.appendChild(editB); btns.appendChild(delB);
+    card.appendChild(btns);
+    grid.appendChild(card);
+  });
+  box.appendChild(grid);
+  return box;
+}
+
+/* ================= CAREER HUB ================= */
+function screenCareerHub(){
+  const box = el('<div></div>');
+  const c = state.career; const div = DIVISIONS[c.divisionIndex];
+  box.appendChild(el(`<div class="section-title"><h2>Carreira de ${c.referee.firstName} ${c.referee.lastName}</h2><div class="line"></div></div>`));
+
+  const avatar = el(`
+    <div class="avatar-wrap">
+      <div class="avatar-preview" style="background:${c.referee.skin}; border-color:${c.referee.kit};">${c.referee.face}</div>
+      <p style="font-family:'Barlow Condensed'; letter-spacing:1px;">${c.referee.nationality} · ${c.referee.age} anos · Personalidade: ${PERSONALITIES.find(p=>p.key===c.referee.personality).label}</p>
+    </div>
+  `);
+  box.appendChild(avatar);
+
+  box.appendChild(el(`<div class="section-title"><h3>Trajetória</h3><div class="line"></div></div>`));
+  const track = el('<div class="division-track"></div>');
+  DIVISIONS.forEach((d,i)=>{
+    const pip = el(`<div class="division-pip ${i===c.divisionIndex?'current':(i<c.divisionIndex?'done':'')}">${d.name}</div>`);
+    track.appendChild(pip);
+  });
+  box.appendChild(track);
+
+  const avgVal = c.divisionRatings.length? (c.divisionRatings.reduce((a,b)=>a+b,0)/c.divisionRatings.length).toFixed(1) : '–';
+  box.appendChild(el(`
+    <div class="notice">
+      Divisão atual: <b>${div.name}</b> ${div.var?'(com VAR)':'(sem VAR)'} · Salário base por partida: <b>${fmtMoney(div.salary)}</b><br>
+      Média na divisão atual: <b>${avgVal}</b> ${div.promoAvg? '/ meta para promoção: <b>'+div.promoAvg+'</b> em pelo menos '+div.minGames+' jogos' : '(topo da carreira)'}
+    </div>
+  `));
+
+  const btnRow = el('<div class="btn-row"></div>');
+  const playBtn = el(`<button class="btn">🏟️ Apitar Próxima Partida (${div.name})</button>`);
+  playBtn.onclick = ()=>startCareerMatch();
+  btnRow.appendChild(playBtn);
+  box.appendChild(btnRow);
+
+  return box;
+}
+
+/* ================= MOTOR DE PARTIDA ================= */
+const ZONES = {
+  defEsq:  {label:'Defesa · Lado Esquerdo',      x:16, y:20},
+  defDir:  {label:'Defesa · Lado Direito',       x:16, y:80},
+  defArea: {label:'Grande Área Defensiva',       x:9,  y:50},
+  meioEsq: {label:'Meio-campo · Lado Esquerdo',  x:50, y:18},
+  meioDir: {label:'Meio-campo · Lado Direito',   x:50, y:82},
+  meioCen: {label:'Meio-campo Central',          x:50, y:50},
+  atqEsq:  {label:'Ataque · Lado Esquerdo',      x:84, y:20},
+  atqDir:  {label:'Ataque · Lado Direito',       x:84, y:80},
+  atqArea: {label:'Grande Área Ofensiva',        x:91, y:50},
+  latDir:  {label:'Lateral do Campo (Direita)',  x:55, y:95},
+  latEsq:  {label:'Lateral do Campo (Esquerda)', x:55, y:5},
+  banco:   {label:'Beira do Campo',              x:50, y:50},
+  escEsq:  {label:'Bandeira de Escanteio (Esq.)',x:97, y:8},
+  escDir:  {label:'Bandeira de Escanteio (Dir.)',x:97, y:92},
+};
+function zonePick(...keys){ return ZONES[rand(keys)]; }
+function pick(...opts){ return rand(opts); }
+
+const EVENT_TYPES = {
+  disputa:   {icon:'🟡', label:'Disputa de Bola',        color:'var(--gold)'},
+  maoNaBola: {icon:'✋',  label:'Lance de Mão na Bola',   color:'var(--yellow)'},
+  entrada:   {icon:'🦵', label:'Entrada Dura',           color:'var(--red)'},
+  simulacao: {icon:'🎭', label:'Possível Simulação',     color:'var(--yellow)'},
+  impedimento:{icon:'🚩', label:'Lance de Impedimento',  color:'var(--gold)'},
+  gol:       {icon:'⚽', label:'Gol Marcado',            color:'var(--green-ok)'},
+  taticaCartao:{icon:'✋', label:'Falta Tática',          color:'var(--yellow)'},
+  tempo:     {icon:'⏳', label:'Perda de Tempo',         color:'var(--gold-dim)'},
+  reclamacao:{icon:'🗣️', label:'Reclamação em Campo',    color:'var(--gold-dim)'},
+  tecnico:   {icon:'📣', label:'Reclamação do Banco',    color:'var(--gold-dim)'},
+  cercado:   {icon:'👥', label:'Jogadores Cercam o Árbitro', color:'var(--red)'},
+  segundoAmarelo:{icon:'🟨🟨', label:'Reincidência Disciplinar', color:'var(--red)'},
+  reposicao: {icon:'🔄', label:'Reposição de Bola',      color:'var(--cream-dim)'},
+  vantagem:  {icon:'➡️', label:'Sequência de Jogo',      color:'var(--green-ok)'},
+  daoccg:    {icon:'⛔', label:'Chance Clara de Gol',     color:'var(--red)'},
+  cotovelada:{icon:'💥', label:'Contato Violento sem Bola', color:'var(--red)'},
+  escanteio: {icon:'🚩', label:'Lance de Escanteio',     color:'var(--gold)'},
+  recuo:     {icon:'🧤', label:'Bola para o Goleiro',    color:'var(--yellow)'},
+  encroach:  {icon:'📏', label:'Barreira Adiantada',     color:'var(--gold-dim)'},
+  celebra:   {icon:'🎉', label:'Comemoração Excessiva',  color:'var(--gold-dim)'},
+};
+
+function pickSide(){ return Math.random()<0.5 ? {side:'home',opp:'away'} : {side:'away',opp:'home'}; }
+function jersey(){ return randInt(2,29); }
+
+function sideInfo(ctx, side){
+  return side==='home'
+    ? {name:ctx.homeTeam, color:ctx.homeColor}
+    : {name:ctx.awayTeam, color:ctx.awayColor};
+}
+
+function buildEventBank(ctx){
+  const bank = [];
+
+  // 1) Disputa de bola (3 variantes de intensidade, cada uma com frases alternativas)
+  bank.push(()=>{
+    const {side,opp} = pickSide();
+    const t1=sideInfo(ctx,side), t2=sideInfo(ctx,opp);
+    const n1=jersey(), n2=jersey();
+    const sev = rand(['leve','normal','forte']);
+    const p1=rand(PLAYER_NAMES), p2=rand(PLAYER_NAMES);
+    const zone = zonePick('meioEsq','meioDir','meioCen');
+    let correctIdx, text;
+    if(sev==='leve'){
+      text = pick(
+        `${p1} (nº${n1}, ${t1.name}) e ${p2} (nº${n2}, ${t2.name}) travam uma disputa de corpo limpa pela bola, sem exagero de nenhum dos dois.`,
+        `Bola dividida entre ${p1} (nº${n1}, ${t1.name}) e ${p2} (nº${n2}, ${t2.name}) — contato mínimo, dentro do esperado para o lance.`,
+        `${p1} (nº${n1}, ${t1.name}) chega no mesmo tempo que ${p2} (nº${n2}, ${t2.name}), os dois se esbarram levemente ao tentar a bola.`
+      );
+      correctIdx = 0;
+    } else if(sev==='normal'){
+      text = pick(
+        `${p1} (nº${n1}, ${t1.name}) chega um instante atrasado e acerta a canela de ${p2} (nº${n2}, ${t2.name}) antes da bola.`,
+        `${p1} (nº${n1}, ${t1.name}) desarma com o pé na frente, mas pega ${p2} (nº${n2}, ${t2.name}) primeiro que a bola.`,
+        `Disputa de bola dividida: ${p1} (nº${n1}, ${t1.name}) trava a perna de ${p2} (nº${n2}, ${t2.name}) num carrinho impreciso.`
+      );
+      correctIdx = 1;
+    } else {
+      text = pick(
+        `${p1} (nº${n1}, ${t1.name}) entra com os dois pés à frente, atrasado, sem chance de tocar na bola, e acerta ${p2} (nº${n2}, ${t2.name}) com força.`,
+        `Entrada perigosa: ${p1} (nº${n1}, ${t1.name}) salta com a sola virada para cima e atinge a perna de apoio de ${p2} (nº${n2}, ${t2.name}).`
+      );
+      correctIdx = 3;
+    }
+    return {
+      category:['precisao','controleDisciplinar'], zone, text, type:EVENT_TYPES.disputa,
+      side, team:t1.name, teamColor:t1.color, jersey:n1,
+      options:[
+        {label:'Nenhuma infração', correct: correctIdx===0},
+        {label:'Marcar falta', correct: correctIdx===1},
+        {label:'Dar vantagem', correct: sev==='normal'},
+        {label:'Falta + Cartão Amarelo', correct: correctIdx===3, card:'yellow'},
+      ],
+      varEligible:false,
+    };
+  });
+
+  // 2) Mão na bola
+  bank.push(()=>{
+    const {side,opp} = pickSide();
+    const t1=sideInfo(ctx,side);
+    const n1=jersey();
+    const p1=rand(PLAYER_NAMES);
+    const inBox = Math.random()<0.5;
+    const deliberate = Math.random()<0.5;
+    const zone = inBox? zonePick('atqArea') : zonePick('atqEsq','atqDir');
+    const text = pick(
+      `A bola bate ${deliberate? 'no braço nitidamente afastado do corpo de':'de forma acidental, colado ao corpo, em'} ${p1} (nº${n1}, ${t1.name}), ${inBox? 'dentro da grande área':'na entrada da área'}.`,
+      `${p1} (nº${n1}, ${t1.name}) tenta bloquear o chute e a bola encosta ${deliberate? 'na mão claramente aberta, buscando espaço':'no braço colado ao tronco'}, ${inBox? 'dentro da área':'fora da área'}.`,
+      `Cruzamento na área desvia ${deliberate? 'na mão aberta e visível de':'de raspão no ombro/braço colado de'} ${p1} (nº${n1}, ${t1.name}).`
+    );
+    let correctLabel;
+    if(!deliberate) correctLabel='Nenhuma infração';
+    else correctLabel = inBox? 'Pênalti' : 'Falta';
+    return {
+      category:['precisao','aplicacaoRegras'], zone, text, type:EVENT_TYPES.maoNaBola,
+      side, team:t1.name, teamColor:t1.color, jersey:n1,
+      options:[
+        {label:'Nenhuma infração', correct: correctLabel==='Nenhuma infração'},
+        {label:'Falta', correct: correctLabel==='Falta'},
+        {label:'Pênalti', correct: correctLabel==='Pênalti'},
+      ],
+      varEligible: inBox,
+    };
+  });
+
+  // 3) Entrada dura (nível de cartão)
+  bank.push(()=>{
+    const {side,opp} = pickSide();
+    const t1=sideInfo(ctx,side), t2=sideInfo(ctx,opp);
+    const n1=jersey(), n2=jersey();
+    const p1=rand(PLAYER_NAMES), p2=rand(PLAYER_NAMES);
+    const level = rand(['imprudente','temeraria','excessiva']);
+    const zone = zonePick('meioEsq','meioDir','meioCen','defEsq','defDir');
+    const text = pick(
+      `${p1} (nº${n1}, ${t1.name}) chega de sola na altura da canela de ${p2} (nº${n2}, ${t2.name}), ${level==='excessiva'?'usando força totalmente desproporcional, sem disputar a bola':'em disputa de bola, mas visivelmente fora de tempo'}.`,
+      `Carrinho de ${p1} (nº${n1}, ${t1.name}) chega alto e pega em cheio o tornozelo de ${p2} (nº${n2}, ${t2.name}).`,
+      `${p1} (nº${n1}, ${t1.name}) trava por trás em ${p2} (nº${n2}, ${t2.name}), que não vê o lance chegando.`
+    );
+    let correctLabel = level==='imprudente' ? 'Falta + Cartão Amarelo' : (level==='temeraria' ? 'Falta + Cartão Amarelo' : 'Falta + Cartão Vermelho');
+    return {
+      category:['precisao','controleDisciplinar'], zone, text, type:EVENT_TYPES.entrada,
+      side, team:t1.name, teamColor:t1.color, jersey:n1,
+      options:[
+        {label:'Apenas falta', correct:false},
+        {label:'Falta + Cartão Amarelo', correct: correctLabel==='Falta + Cartão Amarelo', card:'yellow'},
+        {label:'Falta + Cartão Vermelho', correct: correctLabel==='Falta + Cartão Vermelho', card:'red'},
+      ],
+      varEligible:true,
+    };
+  });
+
+  // 4) Simulação x pênalti legítimo
+  bank.push(()=>{
+    const {side,opp} = pickSide();
+    const t1=sideInfo(ctx,side);
+    const n1=jersey();
+    const p1=rand(PLAYER_NAMES);
+    const isDive = Math.random()<0.55;
+    const zone = zonePick('atqArea');
+    const text = pick(
+      `${p1} (nº${n1}, ${t1.name}) cai na área ${isDive? 'com o mínimo contato, procurando claramente o pênalti':'após puxão discreto na camisa, quase imperceptível'}.`,
+      `${p1} (nº${n1}, ${t1.name}) se joga no chão dentro da área ${isDive? 'antes mesmo de qualquer contato real':'após leve empurrão nas costas'}.`
+    );
+    return {
+      category:['precisao','controleDisciplinar'], zone, text, type:EVENT_TYPES.simulacao,
+      side, team:t1.name, teamColor:t1.color, jersey:n1,
+      options:[
+        {label:'Ignorar e mandar seguir', correct:false},
+        {label:'Pênalti', correct: !isDive},
+        {label:'Cartão Amarelo por simulação', correct: isDive, card:'yellow'},
+      ],
+      varEligible:true,
+    };
+  });
+
+  // 5) Impedimento
+  bank.push(()=>{
+    const {side,opp} = pickSide();
+    const t1=sideInfo(ctx,side);
+    const n1=jersey();
+    const p1=rand(PLAYER_NAMES);
+    const isOffside = Math.random()<0.5;
+    const zone = zonePick('atqEsq','atqDir','atqArea');
+    const text = pick(
+      `${p1} (nº${n1}, ${t1.name}) recebe lançamento em profundidade e sai livre na cara do gol. A defesa reclama de impedimento.`,
+      `Passe entre linhas encontra ${p1} (nº${n1}, ${t1.name}) na corrida — a bandeira do assistente balança em dúvida.`
+    );
+    return {
+      category:['precisao','aplicacaoRegras'], zone, text, type:EVENT_TYPES.impedimento,
+      side, team:t1.name, teamColor:t1.color, jersey:n1,
+      options:[
+        {label:'Validar jogada (sem impedimento)', correct: !isOffside},
+        {label:'Marcar impedimento', correct: isOffside},
+      ],
+      varEligible:true,
+    };
+  });
+
+  // 6) Gol com possível irregularidade
+  bank.push(()=>{
+    const {side,opp} = pickSide();
+    const t1=sideInfo(ctx,side);
+    const n1=jersey();
+    const p1=rand(PLAYER_NAMES);
+    const hadFoulBefore = Math.random()<0.4;
+    const zone = zonePick('atqArea');
+    const text = pick(
+      `Golaço de ${p1} (nº${n1}, ${t1.name})! A torcida explode... mas houve um contato duvidoso pouco antes da finalização.`,
+      `${p1} (nº${n1}, ${t1.name}) só empurra para o gol vazio após bela jogada coletiva — só que a origem do lance ficou confusa.`
+    );
+    return {
+      category:['precisao','usoVar'], zone, text, type:EVENT_TYPES.gol,
+      side, team:t1.name, teamColor:t1.color, jersey:n1, isGoal:true,
+      options:[
+        {label:'Validar o gol', correct: !hadFoulBefore},
+        {label:'Anular o gol (falta anterior)', correct: hadFoulBefore},
+      ],
+      varEligible:true,
+    };
+  });
+
+  // 7) Falta tática
+  bank.push(()=>{
+    const {side,opp} = pickSide();
+    const t1=sideInfo(ctx,side), t2=sideInfo(ctx,opp);
+    const n1=jersey();
+    const p1=rand(PLAYER_NAMES);
+    const zone = zonePick('defEsq','defDir','meioCen');
+    const text = pick(
+      `${p1} (nº${n1}, ${t1.name}) puxa a camisa de um adversário do ${t2.name} para impedir um contra-ataque promissor, claramente tático.`,
+      `Contra-ataque nascendo: ${p1} (nº${n1}, ${t1.name}) trava o jogador do ${t2.name} agarrando o braço, sem nenhuma intenção de jogar a bola.`
+    );
+    return {
+      category:['controleDisciplinar','aplicacaoRegras'], zone, text, type:EVENT_TYPES.taticaCartao,
+      side, team:t1.name, teamColor:t1.color, jersey:n1,
+      options:[
+        {label:'Apenas falta', correct:false},
+        {label:'Falta + Cartão Amarelo (tática)', correct:true, card:'yellow'},
+      ],
+      varEligible:false,
+    };
+  });
+
+  // 8) Perda de tempo
+  bank.push(()=>{
+    const {side,opp} = pickSide();
+    const t1=sideInfo(ctx,side);
+    const n1=jersey();
+    const p1=rand(PLAYER_NAMES);
+    const zone = zonePick('latDir','latEsq');
+    const text = pick(
+      `${p1} (nº${n1}, ${t1.name}), do time que está na frente do placar, demora demais para repor a bola no lateral, claramente enrolando.`,
+      `${p1} (nº${n1}, ${t1.name}) finge dores e se joga no gramado sem necessidade, atrasando a reposição de bola.`
+    );
+    return {
+      category:['controleDisciplinar','autoridade'], zone, text, type:EVENT_TYPES.tempo,
+      side, team:t1.name, teamColor:t1.color, jersey:n1,
+      options:[
+        {label:'Ignorar', correct:false},
+        {label:'Advertir verbalmente', correct:true},
+        {label:'Cartão Amarelo por perda de tempo', correct:true, card:'yellow'},
+      ],
+      varEligible:false,
+    };
+  });
+
+  // 9) Reclamação de jogador
+  bank.push(()=>{
+    const {side,opp} = pickSide();
+    const t1=sideInfo(ctx,side);
+    const n1=jersey();
+    const p1=rand(PLAYER_NAMES);
+    const aggressive = Math.random()<0.5;
+    const zone = zonePick('latDir','latEsq','meioCen');
+    const text = pick(
+      `${p1} (nº${n1}, ${t1.name}) vem reclamar da sua última decisão, ${aggressive? 'gesticulando muito e no tom mais agressivo possível':'de forma educada, só pedindo uma explicação'}.`,
+      `${p1} (nº${n1}, ${t1.name}) corre em sua direção ${aggressive? 'aos gritos, contestando a marcação':'com a mão levantada, pedindo para conversar'}.`
+    );
+    return {
+      category:['comunicacao','autoridade'], zone, text, type:EVENT_TYPES.reclamacao,
+      side, team:t1.name, teamColor:t1.color, jersey:n1,
+      options:[
+        {label:'Explicar com calma', correct: !aggressive},
+        {label:'Ignorar e seguir o jogo', correct:false},
+        {label:'Cartão Amarelo por dissidência', correct: aggressive, card:'yellow'},
+      ],
+      varEligible:false,
+    };
+  });
+
+  // 10) Reclamação do técnico
+  bank.push(()=>{
+    const {side} = pickSide();
+    const t1=sideInfo(ctx,side);
+    const t = rand(COACH_NAMES);
+    const invades = Math.random()<0.4;
+    const zone = ZONES.banco;
+    const text = pick(
+      `${t} (comissão técnica do ${t1.name}) grita da beira do campo ${invades? 'e chega a pisar dentro do gramado protestando':'contra sua marcação, bem alterado'}.`,
+      `${t} (${t1.name}) reclama aos berros do quarto oficial sobre sua última decisão, gesticulando muito.`
+    );
+    return {
+      category:['autoridade','comunicacao'], zone, text, type:EVENT_TYPES.tecnico,
+      side, team:t1.name, teamColor:t1.color, jersey:null,
+      options:[
+        {label:'Advertência verbal', correct: !invades},
+        {label:'Cartão Amarelo para o técnico', correct: invades, card:'yellow'},
+        {label:'Expulsar o técnico', correct:false},
+      ],
+      varEligible:false,
+    };
+  });
+
+  // 11) Jogadores cercam o árbitro
+  bank.push(()=>{
+    const zone = ZONES.meioCen;
+    const text = pick(
+      `Após a marcação, vários jogadores dos dois times cercam você reclamando ao mesmo tempo, em tom exaltado.`,
+      `Tumulto generalizado: jogadores de ambos os lados se aproximam gesticulando, cada um puxando para o seu lado.`
+    );
+    return {
+      category:['autoridade','comunicacao'], zone, text, type:EVENT_TYPES.cercado,
+      side:null, team:null, teamColor:null, jersey:null,
+      options:[
+        {label:'Impor autoridade e afastar todos com firmeza', correct:true},
+        {label:'Conversar com o capitão apenas', correct:true},
+        {label:'Ceder e reconsiderar a marcação', correct:false},
+      ],
+      varEligible:false,
+    };
+  });
+
+  // 12) Segundo amarelo
+  bank.push(()=>{
+    const {side,opp} = pickSide();
+    const t1=sideInfo(ctx,side);
+    const n1=jersey();
+    const p1=rand(PLAYER_NAMES);
+    const zone = zonePick('defEsq','defDir','meioCen');
+    const text = pick(
+      `${p1} (nº${n1}, ${t1.name}), que já está advertido, comete nova infração clara — puxão evidente para travar o avanço adversário.`,
+      `Já amarelado, ${p1} (nº${n1}, ${t1.name}) volta a cometer falta dura, sem qualquer disputa real pela bola.`
+    );
+    return {
+      category:['precisao','controleDisciplinar'], zone, text, type:EVENT_TYPES.segundoAmarelo,
+      side, team:t1.name, teamColor:t1.color, jersey:n1,
+      options:[
+        {label:'Apenas falta', correct:false},
+        {label:'Segundo Cartão Amarelo (expulsão)', correct:true, card:'red'},
+      ],
+      varEligible:true,
+    };
+  });
+
+  // 13) Reposição de bola
+  bank.push(()=>{
+    const {side,opp} = pickSide();
+    const t1=sideInfo(ctx,side), t2=sideInfo(ctx,opp);
+    const outType = rand(['lateral','escanteio','tiro de meta']);
+    const zone = outType==='lateral'? zonePick('latDir','latEsq') : (outType==='escanteio'? zonePick('escEsq','escDir') : zonePick('atqArea','defArea'));
+    const quemDesviou = Math.random()<0.5? t1.name : t2.name;
+    const text = pick(
+      `A bola sai${zone.label.includes('Lateral')?' pela lateral':(zone.label.includes('Escanteio')?' viva próximo à linha de fundo':'')} após desviar em jogador do ${quemDesviou}. Reposição a definir.`,
+      `Bola bate no jogador do ${quemDesviou} e sai do campo perto da bandeirinha. Reposição precisa ser marcada.`
+    );
+    return {
+      category:['aplicacaoRegras','posicionamento'], zone, text, type: outType==='escanteio'? EVENT_TYPES.escanteio : EVENT_TYPES.reposicao,
+      side, team:t1.name, teamColor:t1.color, jersey:null,
+      options:[
+        {label:'Lateral', correct: outType==='lateral'},
+        {label:'Escanteio', correct: outType==='escanteio'},
+        {label:'Tiro de meta', correct: outType==='tiro de meta'},
+      ],
+      varEligible:false,
+    };
+  });
+
+  // 14) Vantagem
+  bank.push(()=>{
+    const {side,opp} = pickSide();
+    const t1=sideInfo(ctx,side);
+    const n1=jersey();
+    const p1=rand(PLAYER_NAMES);
+    const zone = zonePick('atqEsq','atqDir');
+    const text = pick(
+      `${p1} (nº${n1}, ${t1.name}) sofre falta mas a bola sobra limpa para um companheiro em boa posição de ataque.`,
+      `Falta clara em ${p1} (nº${n1}, ${t1.name}), só que o time ganha vantagem real na jogada seguinte.`
+    );
+    return {
+      category:['precisao','posicionamento'], zone, text, type:EVENT_TYPES.vantagem,
+      side, team:t1.name, teamColor:t1.color, jersey:n1,
+      options:[
+        {label:'Parar o jogo e marcar falta', correct:false},
+        {label:'Aplicar a Lei da Vantagem', correct:true},
+      ],
+      varEligible:false,
+    };
+  });
+
+  // 15) Chance clara de gol negada (DOGSO)
+  bank.push(()=>{
+    const {side,opp} = pickSide();
+    const t1=sideInfo(ctx,side), t2=sideInfo(ctx,opp);
+    const n1=jersey(), n2=jersey();
+    const p1=rand(PLAYER_NAMES), p2=rand(PLAYER_NAMES);
+    const clearChance = Math.random()<0.6;
+    const zone = zonePick('defArea','atqArea');
+    const text = pick(
+      `${p1} (nº${n1}, ${t1.name}) puxa ${p2} (nº${n2}, ${t2.name}) por trás quando ele estava sozinho, de frente para o gol, sem goleiro na frente.`,
+      `Último defensor: ${p1} (nº${n1}, ${t1.name}) derruba ${p2} (nº${n2}, ${t2.name}) na corrida, que tinha só o goleiro pela frente.`
+    );
+    return {
+      category:['precisao','controleDisciplinar'], zone, text, type:EVENT_TYPES.daoccg,
+      side, team:t1.name, teamColor:t1.color, jersey:n1,
+      options:[
+        {label:'Apenas falta', correct:false},
+        {label:'Falta + Cartão Amarelo', correct: !clearChance, card:'yellow'},
+        {label:'Falta + Cartão Vermelho (chance clara de gol)', correct: clearChance, card:'red'},
+      ],
+      varEligible:true,
+    };
+  });
+
+  // 16) Contato violento fora da disputa (cotovelada / mão no rosto)
+  bank.push(()=>{
+    const {side,opp} = pickSide();
+    const t1=sideInfo(ctx,side), t2=sideInfo(ctx,opp);
+    const n1=jersey(), n2=jersey();
+    const p1=rand(PLAYER_NAMES), p2=rand(PLAYER_NAMES);
+    const violento = Math.random()<0.5;
+    const zone = zonePick('meioCen','defArea','atqArea');
+    const text = pick(
+      `Bola já tinha saído de perto quando ${p1} (nº${n1}, ${t1.name}) acerta o cotovelo no rosto de ${p2} (nº${n2}, ${t2.name}) durante o salto.`,
+      `${p1} (nº${n1}, ${t1.name}) empurra o rosto de ${p2} (nº${n2}, ${t2.name}) com a mão aberta, longe da disputa pela bola.`
+    );
+    return {
+      category:['precisao','controleDisciplinar'], zone, text, type:EVENT_TYPES.cotovelada,
+      side, team:t1.name, teamColor:t1.color, jersey:n1,
+      options:[
+        {label:'Nenhuma infração (disputa normal)', correct: !violento},
+        {label:'Falta + Cartão Amarelo', correct:false},
+        {label:'Falta + Cartão Vermelho (agressão)', correct: violento, card:'red'},
+      ],
+      varEligible:true,
+    };
+  });
+
+  // 17) Bola para o goleiro (retrocesso com a mão)
+  bank.push(()=>{
+    const {side} = pickSide();
+    const t1=sideInfo(ctx,side);
+    const n1=jersey();
+    const p1=rand(PLAYER_NAMES);
+    const comAPe = Math.random()<0.5;
+    const zone = zonePick('defArea');
+    const text = pick(
+      `${p1} (nº${n1}, ${t1.name}), o goleiro, recebe passe de um companheiro ${comAPe? 'com o pé, na entrada da área':'e, sob pressão, toca com a mão numa bola jogada de propósito pelo colega'}.`,
+      `Recuo do zagueiro chega ao goleiro ${p1} (nº${n1}, ${t1.name}) — a dúvida é se foi jogado deliberadamente com o pé ou não.`
+    );
+    return {
+      category:['precisao','aplicacaoRegras'], zone, text, type:EVENT_TYPES.recuo,
+      side, team:t1.name, teamColor:t1.color, jersey:n1,
+      options:[
+        {label:'Nenhuma infração', correct: comAPe},
+        {label:'Tiro livre indireto por infração do goleiro', correct: !comAPe},
+      ],
+      varEligible:false,
+    };
+  });
+
+  // 18) Barreira adiantada em falta
+  bank.push(()=>{
+    const {side,opp} = pickSide();
+    const t1=sideInfo(ctx,side);
+    const invadiu = Math.random()<0.5;
+    const zone = zonePick('meioCen','atqEsq','atqDir');
+    const text = pick(
+      `Na cobrança de falta, a barreira do ${t1.name} ${invadiu? 'avança antes do apito, invadindo os 9,15m regulamentares':'se mantém exatamente na distância marcada'}.`,
+      `Você já tinha marcado a distância da barreira do ${t1.name}, mas ${invadiu? 'os jogadores dão dois passos à frente assim que o cobrador recua':'eles respeitam a marca no gramado'}.`
+    );
+    return {
+      category:['aplicacaoRegras','autoridade'], zone, text, type:EVENT_TYPES.encroach,
+      side, team:t1.name, teamColor:t1.color, jersey:null,
+      options:[
+        {label:'Deixar cobrar normalmente', correct: !invadiu},
+        {label:'Recuar a barreira e Cartão Amarelo', correct: invadiu, card:'yellow'},
+      ],
+      varEligible:false,
+    };
+  });
+
+  // 19) Comemoração excessiva após gol
+  bank.push(()=>{
+    const {side,opp} = pickSide();
+    const t1=sideInfo(ctx,side);
+    const n1=jersey();
+    const p1=rand(PLAYER_NAMES);
+    const provocou = Math.random()<0.4;
+    const zone = zonePick('atqArea','latDir','latEsq');
+    const text = pick(
+      `Depois do gol, ${p1} (nº${n1}, ${t1.name}) ${provocou? 'corre até a torcida rival provocando e tirando a camisa':'comemora normalmente com os companheiros'}.`,
+      `${p1} (nº${n1}, ${t1.name}) comemora ${provocou? 'de forma provocativa, encarando o banco adversário':'com a torcida, sem exageros'}.`
+    );
+    return {
+      category:['controleDisciplinar','autoridade'], zone, text, type:EVENT_TYPES.celebra,
+      side, team:t1.name, teamColor:t1.color, jersey:n1,
+      options:[
+        {label:'Deixar comemorar, sem punição', correct: !provocou},
+        {label:'Cartão Amarelo por comemoração excessiva', correct: provocou, card:'yellow'},
+      ],
+      varEligible:false,
+    };
+  });
+
+  return bank;
+}
+
+function generateMatchEvents(count, ctx){
+  const bank = buildEventBank(ctx);
+  const events = [];
+  const usedRecently = [];
+  for(let i=0;i<count;i++){
+    let gen, tries=0;
+    do{ gen = rand(bank); tries++; }while(usedRecently.includes(gen) && tries<6);
+    usedRecently.push(gen);
+    if(usedRecently.length>4) usedRecently.shift();
+    const ev = gen();
+    ev.minute = randInt(1,90);
+    events.push(ev);
+  }
+  events.sort((a,b)=>a.minute-b.minute);
+  return events;
+}
+
+function newMatchCtx(mode, opts){
+  opts = opts||{};
+  const division = opts.division || DIVISIONS[0];
+  const varEnabled = opts.varEnabled!==undefined? opts.varEnabled : division.var;
+  const teams = {home: rand(CLUBS), away: rand(CLUBS)};
+  const homeTeam = opts.homeTeam||teams.home, awayTeam = opts.awayTeam||teams.away;
+  const paletteA = ['#f5c518','#3ea86e','#e8e8e8'];
+  const paletteB = ['#3a6fd8','#d7263d','#181818'];
+  const homeColor = opts.homeColor || rand(paletteA);
+  const awayColor = opts.awayColor || rand(paletteB);
+  const numEvents = opts.numEvents || randInt(8,11);
+  const durationSec = opts.durationSec || randInt(160,220);
+  const ctxSeed = {homeTeam, awayTeam};
+  return {
+    mode, division, varEnabled,
+    homeTeam, awayTeam, homeColor, awayColor,
+    durationSec, elapsed:0, active:true,
+    events: generateMatchEvents(numEvents, ctxSeed),
+    eventIndex:0,
+    ballPos:{x:50,y:50},
+    score:{home:0, away:0},
+    scores:{precisao:[], posicionamento:[], controleDisciplinar:[], usoVar:[], comunicacao:[], autoridade:[], aplicacaoRegras:[]},
+    stats:{yellow:0, red:0, penalties:0, goalsAnnulled:0, varReviews:0, seriousErrors:0},
+    teamCards:{home:{yellow:0,red:0}, away:{yellow:0,red:0}},
+    log:[],
+    trainingMode: mode==='training',
+    challenge: opts.challenge||null,
+    league: opts.league||null,
+  };
+}
+
+function startQuickMatch(){
+  const div = state.career ? DIVISIONS[state.career.divisionIndex] : DIVISIONS[0];
+  state.matchCtx = newMatchCtx('quick', {division:div, varEnabled:div.var});
+  state.screen='match';
+  render();
+  scheduleNextEvent();
+}
+
+function startCareerMatch(){
+  const div = DIVISIONS[state.career.divisionIndex];
+  state.matchCtx = newMatchCtx('career', {division:div, varEnabled:div.var});
+  state.screen='match';
+  render();
+  scheduleNextEvent();
+}
+
+function startTraining(){
+  const div = state.career? DIVISIONS[state.career.divisionIndex] : DIVISIONS[0];
+  state.matchCtx = newMatchCtx('training', {division:div, varEnabled:true, numEvents:8, durationSec:9999});
+  state.screen='match';
+  render();
+  scheduleNextEvent();
+}
+
+function startLeagueMatch(league){
+  const divProxy = {name:league.name, var: league.type!=='Copa relâmpago', salary: 400+league.clubs*20};
+  state.matchCtx = newMatchCtx('league', {division:divProxy, varEnabled:divProxy.var, league});
+  state.screen='match';
+  render();
+  scheduleNextEvent();
+}
+
+const CHALLENGE_DEFS = [
+  {id:'penalty_streak', name:'5 Pênaltis Seguidos', desc:'Acerte 5 marcações de pênalti/mão na bola seguidas.', filterCats:['precisao'], count:5},
+  {id:'card_control', name:'Controle Disciplinar', desc:'Aplique os cartões corretos em 6 lances de disciplina.', filterCats:['controleDisciplinar'], count:6},
+  {id:'var_master', name:'Mestre do VAR', desc:'Revise corretamente 4 lances de VAR seguidos.', filterCats:['usoVar'], count:4, forceVar:true},
+];
+
+function screenChallenges(){
+  const box = el('<div></div>');
+  box.appendChild(el(`<div class="section-title"><h2>Desafios</h2><div class="line"></div></div>`));
+  const grid = el('<div class="menu-grid"></div>');
+  CHALLENGE_DEFS.forEach(ch=>{
+    const card = el(`
+      <div class="menu-card">
+        <span class="tag">Desafio</span>
+        <span class="icon">🧩</span>
+        <h3>${ch.name}</h3>
+        <p>${ch.desc}</p>
+      </div>
+    `);
+    card.onclick = ()=>{
+      const div = state.career? DIVISIONS[state.career.divisionIndex] : DIVISIONS[3];
+      state.matchCtx = newMatchCtx('challenge', {division:div, varEnabled: ch.forceVar || div.var, numEvents:ch.count, durationSec:9999, challenge:ch});
+      state.screen='match';
+      render();
+      scheduleNextEvent();
+    };
+    grid.appendChild(card);
+  });
+  box.appendChild(grid);
+  return box;
+}
+
+/* ---- Ciclo da partida ---- */
+var clockInterval=null, decisionInterval=null, nextEventTimeout=null;
+
+function clearMatchTimers(){
+  clearInterval(clockInterval); clockInterval=null;
+  clearInterval(decisionInterval); decisionInterval=null;
+  clearTimeout(nextEventTimeout); nextEventTimeout=null;
+}
+
+function scheduleNextEvent(){
+  const ctx = state.matchCtx;
+  if(!ctx || !ctx.active) return;
+  ctx.currentEvent = null;
+  renderMatchOnly();
+  clearMatchTimers();
+  if(!ctx.trainingMode){
+    clockInterval = setInterval(()=>{
+      if(!ctx.active){ clearMatchTimers(); return; }
+      ctx.elapsed += 1;
+      if(ctx.elapsed >= ctx.durationSec || ctx.eventIndex>=ctx.events.length){
+        clearMatchTimers();
+        finishMatch();
+        return;
+      }
+      updateClockUI();
+    },1000);
+  }
+  const delay = ctx.trainingMode? 400 : randInt(2600, 4800);
+  nextEventTimeout = setTimeout(()=>{
+    if(!ctx.active) return;
+    if(ctx.eventIndex>=ctx.events.length){
+      clearMatchTimers();
+      finishMatch();
+      return;
+    }
+    presentEvent(ctx.events[ctx.eventIndex]);
+  }, delay);
+}
+
+function presentEvent(ev){
+  const ctx = state.matchCtx;
+  ctx.currentEvent = ev;
+  ctx.ballPos = ev.zone ? {x:ev.zone.x, y:ev.zone.y} : {x:randInt(10,90), y:randInt(15,85)};
+  ctx.decisionTimeLeft = ctx.trainingMode? 9999 : 13;
+  ctx.decisionTotal = ctx.decisionTimeLeft;
+  renderMatchOnly();
+  if(!ctx.trainingMode){
+    decisionInterval = setInterval(()=>{
+      ctx.decisionTimeLeft -= 0.1;
+      updateTimerRing();
+      if(ctx.decisionTimeLeft<=0){
+        clearInterval(decisionInterval);
+        resolveDecision(null);
+      }
+    },100);
+  }
+}
+
+function updateClockUI(){
+  const ctx = state.matchCtx;
+  const clockEl = document.getElementById('matchClock');
+  if(clockEl){
+    const minute = Math.floor((ctx.elapsed/ctx.durationSec)*90);
+    clockEl.textContent = `${minute}' `;
+  }
+}
+
+function updateTimerRing(){
+  const ctx = state.matchCtx;
+  const ring = document.getElementById('ringFg');
+  const txt = document.getElementById('ringTxt');
+  if(!ring) return;
+  const pct = clamp(ctx.decisionTimeLeft/ctx.decisionTotal,0,1);
+  const circumference = 2*Math.PI*18;
+  ring.style.strokeDasharray = circumference;
+  ring.style.strokeDashoffset = circumference*(1-pct);
+  ring.style.stroke = pct<0.3? 'var(--red)' : (pct<0.6? 'var(--yellow)':'var(--gold)');
+  if(txt) txt.textContent = Math.max(0,Math.ceil(ctx.decisionTimeLeft));
+}
+
+function resolveDecision(optionIdx){
+  const ctx = state.matchCtx;
+  clearInterval(decisionInterval);
+  const ev = ctx.currentEvent;
+  if(!ev) return;
+  const opt = (optionIdx!==null && ev.options[optionIdx]) ? ev.options[optionIdx] : null;
+  const correct = opt? !!opt.correct : false;
+  const speedBonus = ctx.trainingMode? 1 : clamp(ctx.decisionTimeLeft/ctx.decisionTotal,0,1);
+
+  const precisionScore = correct? 10 : (opt? 3 : 0);
+  const posScore = 5 + speedBonus*5;
+  ev.category.forEach(cat=>{
+    if(cat==='precisao') ctx.scores.precisao.push(precisionScore);
+    if(cat==='aplicacaoRegras') ctx.scores.aplicacaoRegras.push(correct?10:2);
+    if(cat==='controleDisciplinar') ctx.scores.controleDisciplinar.push(correct?10:4);
+    if(cat==='usoVar') ctx.scores.usoVar.push(correct?10:5);
+    if(cat==='comunicacao') ctx.scores.comunicacao.push(correct?10:5);
+    if(cat==='autoridade') ctx.scores.autoridade.push(correct?10:4);
+  });
+  ctx.scores.posicionamento.push(posScore);
+  if(!ev.category.includes('aplicacaoRegras')) ctx.scores.aplicacaoRegras.push(correct?9:5);
+
+  if(opt && opt.card==='yellow'){ ctx.stats.yellow++; if(ev.side) ctx.teamCards[ev.side].yellow++; flyCard('yellow', ev.team); }
+  if(opt && opt.card==='red'){ ctx.stats.red++; if(ev.side) ctx.teamCards[ev.side].red++; flyCard('red', ev.team); }
+  if(ev.options.some(o=>o.label==='Pênalti') && opt && opt.label==='Pênalti'){ ctx.stats.penalties++; }
+  if(ev.isGoal && opt && opt.label.startsWith('Anular')){ ctx.stats.goalsAnnulled++; }
+  if(ev.isGoal && opt && opt.label==='Validar o gol' && ev.side){ ctx.score[ev.side]++; }
+  if(!correct && ev.category.includes('precisao')) { if(Math.random()<0.3) ctx.stats.seriousErrors++; }
+
+  ctx.log.push({minute:ev.minute, text:ev.text, decision: opt? opt.label : 'Tempo esgotado — nenhuma decisão', correct});
+
+  const goVar = ()=>{
+    if(ctx.varEnabled && ev.varEligible && Math.random()<0.55){
+      ctx.stats.varReviews++;
+      openVarReview(ev, opt, correct);
+    } else {
+      afterDecisionContinue(correct, ev, opt);
+    }
+  };
+
+  if(ctx.trainingMode){
+    showTrainingFeedback(ev, opt, correct, goVar);
+  } else {
+    goVar();
+  }
+}
+
+function showTrainingFeedback(ev, opt, correct, cb){
+  const ctx = state.matchCtx;
+  ctx.trainingFeedback = {ev, opt, correct};
+  renderMatchOnly();
+  const btn = document.getElementById('trainContinueBtn');
+  if(btn) btn.onclick = ()=>{ ctx.trainingFeedback=null; cb(); };
+}
+
+function openVarReview(ev, opt, wasCorrect){
+  const overlay = el(`
+    <div class="var-overlay">
+      <div class="var-box">
+        <div class="var-lines">🔎 VAR EM ANÁLISE</div>
+        <p>O árbitro de vídeo pede a revisão do lance no monitor de campo.</p>
+        <div class="replay-box">"${ev.text}"<br><br><b>Sua decisão:</b> ${opt? opt.label : 'Nenhuma decisão tomada'}</div>
+        <div class="btn-row" style="justify-content:center;">
+          <button class="btn secondary" id="varKeep">Manter decisão</button>
+          <button class="btn" id="varChange">Alterar decisão</button>
+        </div>
+      </div>
+    </div>
+  `);
+  document.body.appendChild(overlay);
+  overlay.querySelector('#varKeep').onclick = ()=>{
+    overlay.remove();
+    const ctx = state.matchCtx;
+    ctx.scores.usoVar.push(wasCorrect? 10 : 2);
+    afterDecisionContinue(wasCorrect, ev, opt);
+  };
+  overlay.querySelector('#varChange').onclick = ()=>{
+    overlay.remove();
+    const ctx = state.matchCtx;
+    const nowCorrect = !wasCorrect;
+    ctx.scores.usoVar.push(nowCorrect? 9 : 1);
+    if(ev.isGoal && ev.side){
+      if(opt && opt.label==='Validar o gol'){ ctx.score[ev.side] = Math.max(0, ctx.score[ev.side]-1); }
+      else { ctx.score[ev.side]++; }
+    }
+    if(nowCorrect && !wasCorrect){ showToast('Decisão corrigida pelo VAR!'); }
+    afterDecisionContinue(nowCorrect, ev, opt, true);
+  };
+}
+
+function flyCard(color, teamName){
+  const card = document.createElement('div');
+  card.className='card-fly';
+  card.style.background = color==='yellow' ? 'var(--yellow)' : 'var(--red)';
+  card.style.flexDirection = 'column';
+  card.innerHTML = `<span>${color==='yellow' ? 'AMARELO' : 'VERMELHO'}</span>${teamName? `<span style="font-size:9px; margin-top:2px; max-width:70px; text-align:center; line-height:1.1;">${teamName}</span>`:''}`;
+  document.body.appendChild(card);
+  setTimeout(()=>card.remove(), 950);
+}
+
+function afterDecisionContinue(correct, ev, opt, wasChanged){
+  const ctx = state.matchCtx;
+  if(!wasChanged){
+    showToast(correct? '✅ Decisão consistente com as regras da IFAB' : '⚠️ Decisão questionável — revise as regras da IFAB');
+  }
+  ctx.currentEvent = null;
+  ctx.eventIndex++;
+
+  if(ctx.challenge){
+    const relevant = ev.category.some(c=>ctx.challenge.filterCats.includes(c));
+    if(relevant){
+      ctx.challengeHits = ctx.challengeHits||0;
+      ctx.challengeTotal = ctx.challengeTotal||0;
+      ctx.challengeTotal++;
+      if(correct) ctx.challengeHits++;
+    }
+    if(ctx.eventIndex>=ctx.events.length){
+      clearMatchTimers();
+      finishMatch();
+      return;
+    }
+  }
+
+  if(ctx.trainingMode && ctx.eventIndex>=ctx.events.length){
+    clearMatchTimers();
+    finishMatch();
+    return;
+  }
+
+  scheduleNextEvent();
+}
+
+function avg(arr){ return arr.length? arr.reduce((a,b)=>a+b,0)/arr.length : 6; }
+
+async function finishMatch(){
+  const ctx = state.matchCtx;
+  if(!ctx || ctx.finished) return;
+  ctx.finished = true;
+  ctx.active=false;
+  clearMatchTimers();
+  const catAverages = {
+    precisao: avg(ctx.scores.precisao),
+    posicionamento: avg(ctx.scores.posicionamento),
+    controleDisciplinar: avg(ctx.scores.controleDisciplinar),
+    usoVar: ctx.scores.usoVar.length? avg(ctx.scores.usoVar) : 7,
+    comunicacao: ctx.scores.comunicacao.length? avg(ctx.scores.comunicacao) : 7,
+    autoridade: ctx.scores.autoridade.length? avg(ctx.scores.autoridade) : 7,
+    aplicacaoRegras: avg(ctx.scores.aplicacaoRegras),
+  };
+  Object.keys(catAverages).forEach(k=> catAverages[k] = clamp(catAverages[k],0,10));
+  const overall = clamp(Object.values(catAverages).reduce((a,b)=>a+b,0)/Object.keys(catAverages).length, 0, 10);
+  ctx.finalRatings = catAverages;
+  ctx.overallRating = overall;
+
+  if(ctx.mode==='career' && state.career){
+    const div = DIVISIONS[state.career.divisionIndex];
+    const c = state.career;
+    c.gamesPlayed++;
+    c.stats.matches++;
+    c.stats.yellow += ctx.stats.yellow;
+    c.stats.red += ctx.stats.red;
+    c.stats.penalties += ctx.stats.penalties;
+    c.stats.goalsAnnulled += ctx.stats.goalsAnnulled;
+    c.stats.varReviews += ctx.stats.varReviews;
+    c.stats.seriousErrors += ctx.stats.seriousErrors;
+    c.ratingHistory.push(overall);
+    c.divisionRatings.push(overall);
+    const earnings = Math.round(div.salary * (0.6 + overall/10));
+    c.money += earnings;
+    ctx.earnings = earnings;
+
+    if(div.promoAvg && c.divisionRatings.length>=div.minGames){
+      const recent = c.divisionRatings.slice(-div.minGames);
+      const recentAvg = recent.reduce((a,b)=>a+b,0)/recent.length;
+      if(recentAvg >= div.promoAvg){
+        state.career.divisionIndex = clamp(c.divisionIndex+1, 0, DIVISIONS.length-1);
+        c.divisionRatings = [];
+        c.stats.promotions++;
+        ctx.promoted = true;
+        ctx.newDivision = DIVISIONS[state.career.divisionIndex].name;
+      }
+    }
+    await saveCareer();
+  } else if(ctx.mode==='league' && ctx.league){
+    ctx.league.progress = clamp((ctx.league.progress||0)+1, 0, ctx.league.rounds);
+    await saveLeagues();
+  }
+
+  state.screen='matchResult';
+  render();
+}
+
+function renderMatchOnly(){
+  if(state.screen!=='match') return;
+  const container = document.querySelector('.match-inner');
+  if(!container) { render(); return; }
+  const fresh = buildMatchInner();
+  container.replaceWith(fresh);
+}
+
+function screenMatch(){
+  const wrap = el('<div></div>');
+  wrap.appendChild(buildMatchInner());
+  return wrap;
+}
+
+function buildMatchInner(){
+  const ctx = state.matchCtx;
+  const wrap = el('<div class="match-inner"></div>');
+  if(!ctx){ wrap.appendChild(el('<p>Nenhuma partida ativa.</p>')); return wrap; }
+
+  const scoreboard = el(`
+    <div class="scoreboard">
+      <div class="teams"><span style="color:${ctx.homeColor};">●</span> ${ctx.homeTeam} <b class="mono" style="color:var(--gold); margin:0 6px;">${ctx.score.home} - ${ctx.score.away}</b> ${ctx.awayTeam} <span style="color:${ctx.awayColor};">●</span></div>
+      <div class="clock mono" id="matchClock">${ctx.trainingMode? 'Treino' : Math.floor((ctx.elapsed/ctx.durationSec)*90)+"'"}</div>
+    </div>
+  `);
+  wrap.appendChild(scoreboard);
+
+  const cardsRow = el(`
+    <div class="scoreboard-cards">
+      <span>${ctx.homeTeam}: <b>🟨${ctx.teamCards.home.yellow}</b> <b>🟥${ctx.teamCards.home.red}</b></span>
+      <span>${ctx.awayTeam}: <b>🟨${ctx.teamCards.away.yellow}</b> <b>🟥${ctx.teamCards.away.red}</b></span>
+    </div>
+  `);
+  wrap.appendChild(cardsRow);
+
+  const showMarker = ctx.currentEvent && ctx.currentEvent.zone;
+  const pitch = el(`
+    <div class="pitch-box">
+      <div class="center-line"></div>
+      <div class="center-circle"></div>
+      <div class="box-left"></div>
+      <div class="box-right"></div>
+      <div class="ball" style="left:${ctx.ballPos.x}%; top:${ctx.ballPos.y}%;"></div>
+      ${showMarker? `<div class="zone-marker" style="left:${ctx.currentEvent.zone.x}%; top:${ctx.currentEvent.zone.y}%;"></div>
+      <div class="zone-tag">📍 ${ctx.currentEvent.zone.label}</div>` : ''}
+    </div>
+  `);
+  wrap.appendChild(pitch);
+
+  if(ctx.division && ctx.division.var){
+    wrap.appendChild(el(`<div class="notice">🖥️ VAR ativo nesta partida — lances de gol, pênalti, cartão vermelho e impedimento podem ser revisados.</div>`));
+  }
+
+  if(ctx.challenge){
+    wrap.appendChild(el(`<div class="notice">🧩 Desafio: <b>${ctx.challenge.name}</b> — acerto ${ctx.challengeHits||0}/${ctx.challengeTotal||0}</div>`));
+  }
+
+  function buildEventHead(ev){
+    const head = el('<div class="event-head"></div>');
+    head.appendChild(el(`<span class="type-badge" style="color:${ev.type.color};">${ev.type.icon} ${ev.type.label}</span>`));
+    if(ev.team){
+      head.appendChild(el(`<span class="team-tag"><span class="dot" style="background:${ev.teamColor};"></span>${ev.team}</span>`));
+    }
+    if(ev.jersey){
+      head.appendChild(el(`<span class="jersey-badge">Nº ${ev.jersey}</span>`));
+    }
+    if(!ctx.trainingMode){
+      head.appendChild(el(`<span class="minute-tag">⏱️ ${ev.minute}'</span>`));
+    }
+    return head;
+  }
+
+  if(ctx.trainingFeedback){
+    const {ev,opt,correct} = ctx.trainingFeedback;
+    const fb = el(`
+      <div class="event-card" style="border-color:${correct?'var(--green-ok)':'var(--red)'};">
+        <div class="loc">${correct? '✅ Decisão correta':'⚠️ Reveja a regra'}</div>
+      </div>
+    `);
+    fb.insertBefore(buildEventHead(ev), fb.firstChild.nextSibling);
+    fb.appendChild(el(`
+      <div class="desc">
+        <b>Lance:</b> ${ev.text}<br>
+        <b>Você marcou:</b> ${opt? opt.label : 'Nada'}<br><br>
+        ${correct? 'Essa decisão está alinhada com as Regras do Jogo da IFAB para este tipo de lance.' : 'Segundo as Regras do Jogo da IFAB, a decisão ideal para esse tipo de contato/lance costuma ser diferente — preste atenção à intensidade, intenção e local do lance.'}
+      </div>
+    `));
+    fb.appendChild(el(`<button class="btn full" id="trainContinueBtn">Continuar treino ➜</button>`));
+    wrap.appendChild(fb);
+    return wrap;
+  }
+
+  if(ctx.currentEvent){
+    const ev = ctx.currentEvent;
+    const card = el(`<div class="event-card"></div>`);
+    card.appendChild(buildEventHead(ev));
+    card.appendChild(el(`<div class="desc">${ev.text}</div>`));
+    if(!ctx.trainingMode){
+      const timerWrap = el(`
+        <div class="timer-ring-wrap">
+          <svg class="timer-ring" viewBox="0 0 40 40">
+            <circle class="bg" cx="20" cy="20" r="18"></circle>
+            <circle class="fg" id="ringFg" cx="20" cy="20" r="18"></circle>
+          </svg>
+          <div>
+            <div class="mono" id="ringTxt" style="font-size:20px; color:var(--gold);">${Math.ceil(ctx.decisionTimeLeft)}</div>
+            <small class="hint">segundos para decidir</small>
+          </div>
+        </div>
+      `);
+      card.appendChild(timerWrap);
+    }
+    const grid = el('<div class="decision-grid"></div>');
+    ev.options.forEach((opt,idx)=>{
+      const b = el(`<button class="btn ${opt.card==='yellow'?'yellowcard':(opt.card==='red'?'danger':'secondary')}">${opt.label}</button>`);
+      b.onclick = ()=>resolveDecision(idx);
+      grid.appendChild(b);
+    });
+    card.appendChild(grid);
+    wrap.appendChild(card);
+  } else {
+    wrap.appendChild(el(`<div class="event-card"><div class="desc">⏳ Jogo em andamento... aguardando o próximo lance.</div></div>`));
+  }
+
+  requestAnimationFrame(()=>{ if(!ctx.trainingMode && ctx.currentEvent) updateTimerRing(); });
+  return wrap;
+}
+
+/* ================= RESULTADO DA PARTIDA ================= */
+function screenMatchResult(){
+  const ctx = state.matchCtx;
+  const box = el('<div></div>');
+  box.appendChild(el(`<div class="section-title"><h2>Fim de Jogo — Relatório do Árbitro</h2><div class="line"></div></div>`));
+  box.appendChild(el(`<p style="font-family:'Barlow Condensed'; font-size:16px; color:var(--cream-dim);">${ctx.homeTeam} <b style="color:var(--gold);">${ctx.score.home} - ${ctx.score.away}</b> ${ctx.awayTeam}</p>`));
+
+  const bigScore = el(`
+    <div style="text-align:center; margin:14px 0 20px;">
+      <div style="font-family:'Anton'; font-size:56px; color:var(--gold);">${ctx.overallRating.toFixed(1)}</div>
+      <div class="eyebrow">NOTA GERAL DA PARTIDA</div>
+    </div>
+  `);
+  box.appendChild(bigScore);
+
+  const labels = {precisao:'Precisão das Decisões', posicionamento:'Posicionamento', controleDisciplinar:'Controle Disciplinar',
+    usoVar:'Uso do VAR', comunicacao:'Comunicação', autoridade:'Autoridade', aplicacaoRegras:'Aplicação das Regras'};
+  Object.keys(labels).forEach(k=>{
+    const v = ctx.finalRatings[k];
+    box.appendChild(el(`
+      <div class="rating-bar-row">
+        <div class="label">${labels[k]}</div>
+        <div class="rating-bar-track"><div class="rating-bar-fill" style="width:${v*10}%;"></div></div>
+        <div class="val">${v.toFixed(1)}</div>
+      </div>
+    `));
+  });
+
+  const statGrid = el('<div class="stat-grid" style="margin-top:18px;"></div>');
+  const items = [
+    ['🟨 Amarelos', ctx.stats.yellow], ['🟥 Vermelhos', ctx.stats.red],
+    ['⚽ Pênaltis', ctx.stats.penalties], ['🚫 Gols anulados', ctx.stats.goalsAnnulled],
+    ['🖥️ Revisões VAR', ctx.stats.varReviews], ['❗ Erros graves', ctx.stats.seriousErrors],
+  ];
+  items.forEach(([l,n])=> statGrid.appendChild(el(`<div class="stat-tile"><div class="n">${n}</div><div class="l">${l}</div></div>`)));
+  box.appendChild(statGrid);
+
+  if(ctx.mode==='career'){
+    box.appendChild(el(`<div class="notice">💰 Você recebeu <b>${fmtMoney(ctx.earnings)}</b> por esta partida.${ctx.promoted? '<br>🎉 <b>PROMOÇÃO!</b> Você agora vai apitar na '+ctx.newDivision+'!' : ''}</div>`));
+  }
+  if(ctx.mode==='challenge'){
+    const pct = ctx.challengeTotal? Math.round((ctx.challengeHits/ctx.challengeTotal)*100) : 0;
+    box.appendChild(el(`<div class="notice">🧩 Resultado do desafio: <b>${ctx.challengeHits||0}/${ctx.challengeTotal||0}</b> (${pct}%) ${pct>=80?'— Excelente!':(pct>=50?'— Bom trabalho, mas dá pra melhorar.':'— Vale revisar as regras da IFAB.')}</div>`));
+  }
+  if(ctx.mode==='league' && ctx.league){
+    box.appendChild(el(`<div class="notice">🏆 Rodada registrada na liga <b>${ctx.league.name}</b> (${ctx.league.progress}/${ctx.league.rounds}).</div>`));
+  }
+  if(ctx.mode==='training'){
+    box.appendChild(el(`<div class="notice">🎓 Sessão de treinamento concluída — sem impacto na carreira.</div>`));
+  }
+
+  box.appendChild(el(`<div class="section-title"><h3>Súmula de Lances</h3><div class="line"></div></div>`));
+  const logBox = el('<div></div>');
+  ctx.log.forEach(l=>{
+    logBox.appendChild(el(`<div class="notice" style="border-color:${l.correct?'rgba(62,168,110,0.4)':'rgba(215,38,61,0.4)'};">${l.minute}' — ${l.text}<br><small class="hint">Decisão: ${l.decision} ${l.correct?'✅':'⚠️'}</small></div>`));
+  });
+  box.appendChild(logBox);
+
+  const btnRow = el('<div class="btn-row" style="margin-top:10px;"></div>');
+  const menuBtn = el(`<button class="btn">🏠 Voltar ao Menu</button>`);
+  menuBtn.onclick = ()=>{ state.screen = state.career? 'careerHub':'menu'; render(); };
+  btnRow.appendChild(menuBtn);
+  box.appendChild(btnRow);
+
+  return box;
+}
+
+/* ================= LOJA ================= */
+function screenShop(){
+  const box = el('<div></div>');
+  const c = state.career;
+  box.appendChild(el(`<div class="section-title"><h2>Loja do Árbitro</h2><div class="line"></div></div>`));
+  box.appendChild(el(`<div class="notice">💰 Saldo disponível: <b>${fmtMoney(c.money)}</b> · Todos os itens são cosméticos e não afetam suas notas ou desempenho.</div>`));
+
+  const cats = [...new Set(SHOP_ITEMS.map(i=>i.cat))];
+  cats.forEach(cat=>{
+    box.appendChild(el(`<div class="section-title"><h3>${cat}</h3><div class="line"></div></div>`));
+    const grid = el('<div class="shop-grid"></div>');
+    SHOP_ITEMS.filter(i=>i.cat===cat).forEach(item=>{
+      const owned = c.inventory.includes(item.id);
+      const equippedKey = cat==='Uniforme'?'kit':(cat==='Apito'?'whistle':(cat==='Relógio'?'watch':(cat==='Cartões'?'cards':null)));
+      const isEquipped = equippedKey && c.equipped[equippedKey]===item.id;
+      const tile = el(`
+        <div class="shop-item">
+          <div class="ic">${item.icon}</div>
+          <div>${item.name}</div>
+          <div class="price">${item.price===0?'Grátis':fmtMoney(item.price)}</div>
+        </div>
+      `);
+      const btn = el(`<button class="btn ${isEquipped?'secondary':''}" style="width:100%; margin-top:6px;">${isEquipped?'Equipado':(owned?'Equipar':'Comprar')}</button>`);
+      btn.onclick = async ()=>{
+        if(owned){
+          if(equippedKey){ c.equipped[equippedKey]=item.id; await saveCareer(); showToast('Item equipado!'); render(); }
+        } else {
+          if(c.money>=item.price){
+            c.money -= item.price;
+            c.inventory.push(item.id);
+            if(equippedKey) c.equipped[equippedKey]=item.id;
+            await saveCareer();
+            showToast('Item comprado e equipado!');
+            render();
+          } else {
+            showToast('Saldo insuficiente.');
+          }
+        }
+      };
+      tile.appendChild(btn);
+      grid.appendChild(tile);
+    });
+    box.appendChild(grid);
+  });
+  return box;
+}
+
+/* ================= ESTATÍSTICAS ================= */
+/* ================= BACKUP / RESTAURAR PROGRESSO ================= */
+function b64EncodeUnicode(str){
+  return window.btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (m,p)=>String.fromCharCode('0x'+p)));
+}
+function b64DecodeUnicode(str){
+  return decodeURIComponent(window.atob(str).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+}
+
+function screenBackup(){
+  const box = el('<div></div>');
+  box.appendChild(el(`<div class="section-title"><h2>Backup do Progresso</h2><div class="line"></div></div>`));
+  box.appendChild(el(`
+    <div class="notice">
+      Este jogo roda como um arquivo isolado no seu navegador, sem conta ou servidor central — por isso o progresso fica salvo apenas neste navegador/computador.
+      Para levar seu árbitro, carreira e ligas para outro navegador ou outro computador, gere um código de backup aqui e cole na tela de restauração no outro lugar.
+    </div>
+  `));
+
+  box.appendChild(el(`<div class="section-title"><h3>1. Gerar código (exportar)</h3><div class="line"></div></div>`));
+  const exportArea = el(`<textarea id="exportArea" readonly placeholder="Clique em 'Gerar código' para criar seu backup..." style="min-height:110px; font-family:'Space Mono'; font-size:11px;"></textarea>`);
+  box.appendChild(exportArea);
+  const exportRow = el('<div class="btn-row"></div>');
+  const genBtn = el(`<button class="btn">🔑 Gerar Código</button>`);
+  genBtn.onclick = ()=>{
+    if(!state.career){ showToast('Crie um árbitro antes de gerar um backup.'); return; }
+    const payload = { v:1, career: state.career, customLeagues: state.customLeagues };
+    exportArea.value = b64EncodeUnicode(JSON.stringify(payload));
+    showToast('Código gerado — copie e guarde em local seguro.');
+  };
+  const copyBtn = el(`<button class="btn secondary">📋 Copiar</button>`);
+  copyBtn.onclick = async ()=>{
+    if(!exportArea.value){ showToast('Gere o código primeiro.'); return; }
+    try{
+      await navigator.clipboard.writeText(exportArea.value);
+      showToast('Código copiado para a área de transferência!');
+    }catch(e){
+      exportArea.select();
+      showToast('Selecionado — use Ctrl+C (ou Cmd+C) para copiar.');
+    }
+  };
+  exportRow.appendChild(genBtn); exportRow.appendChild(copyBtn);
+  box.appendChild(exportRow);
+
+  box.appendChild(el(`<div class="section-title"><h3>2. Restaurar código (importar)</h3><div class="line"></div></div>`));
+  const importArea = el(`<textarea id="importArea" placeholder="Cole aqui o código de backup gerado em outro navegador/dispositivo..." style="min-height:110px; font-family:'Space Mono'; font-size:11px;"></textarea>`);
+  box.appendChild(importArea);
+  const restoreBtn = el(`<button class="btn full">♻️ Restaurar Progresso a partir do Código</button>`);
+  restoreBtn.onclick = async ()=>{
+    const raw = importArea.value.trim();
+    if(!raw){ showToast('Cole um código antes de restaurar.'); return; }
+    if(!confirm('Isso vai substituir seu árbitro, carreira e ligas atuais neste navegador. Continuar?')) return;
+    try{
+      const payload = JSON.parse(b64DecodeUnicode(raw));
+      if(!payload.career || !payload.career.referee) throw new Error('formato inválido');
+      state.career = payload.career;
+      state.referee = payload.career.referee;
+      state.refExists = true;
+      state.customLeagues = payload.customLeagues || [];
+      await saveCareer();
+      await saveLeagues();
+      showToast('Progresso restaurado com sucesso!');
+      state.screen='careerHub';
+      render();
+    }catch(e){
+      showToast('Código inválido — verifique se copiou o código completo.');
+    }
+  };
+  box.appendChild(restoreBtn);
+
+  box.appendChild(el(`<p class="hint" style="margin-top:14px;">💡 Dica: gere um novo código sempre que quiser atualizar seu backup — ele sempre reflete o estado mais recente no momento em que foi gerado, não é atualizado automaticamente depois.</p>`));
+  return box;
+}
+
+function screenStats(){
+  const c = state.career;
+  const box = el('<div></div>');
+  box.appendChild(el(`<div class="section-title"><h2>Estatísticas de Carreira</h2><div class="line"></div></div>`));
+  const avgRating = c.ratingHistory.length? (c.ratingHistory.reduce((a,b)=>a+b,0)/c.ratingHistory.length).toFixed(2) : '–';
+  const grid = el('<div class="stat-grid"></div>');
+  const items = [
+    ['📋 Jogos apitados', c.stats.matches],
+    ['⭐ Média geral', avgRating],
+    ['🟨 Amarelos', c.stats.yellow],
+    ['🟥 Vermelhos', c.stats.red],
+    ['⚽ Pênaltis marcados', c.stats.penalties],
+    ['🚫 Gols anulados', c.stats.goalsAnnulled],
+    ['🖥️ Revisões VAR', c.stats.varReviews],
+    ['❗ Erros graves', c.stats.seriousErrors],
+    ['🚀 Promoções', c.stats.promotions],
+    ['💰 Saldo atual', fmtMoney(c.money)],
+  ];
+  items.forEach(([l,n])=>grid.appendChild(el(`<div class="stat-tile"><div class="n">${n}</div><div class="l">${l}</div></div>`)));
+  box.appendChild(grid);
+
+  box.appendChild(el(`<div class="section-title"><h3>Histórico de Notas (últimas 10 partidas)</h3><div class="line"></div></div>`));
+  const hist = c.ratingHistory.slice(-10);
+  if(hist.length===0){ box.appendChild(el(`<p class="hint">Nenhuma partida disputada ainda.</p>`)); }
+  hist.forEach((r,i)=>{
+    box.appendChild(el(`
+      <div class="rating-bar-row">
+        <div class="label">Partida ${c.ratingHistory.length-hist.length+i+1}</div>
+        <div class="rating-bar-track"><div class="rating-bar-fill" style="width:${r*10}%;"></div></div>
+        <div class="val">${r.toFixed(1)}</div>
+      </div>
+    `));
+  });
+  return box;
+}
+
+/* ================= INIT ================= */
+async function init(){
+  await loadCareer();
+  render();
+}
+init();
+</script>
+</body>
+</html>
